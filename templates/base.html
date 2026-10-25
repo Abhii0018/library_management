@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}LibriCore - Library Management System{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'images/library-logo.svg' %}">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+  <div class="app-container">
+    {% include 'includes/sidebar.html' %}
+
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-title-wrap">
+          <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+          <div class="topbar-subtitle">{% block page_subtitle %}Welcome to the Library Management System{% endblock %}</div>
+        </div>
+        <div class="topbar-actions">
+          {% block page_actions %}{% endblock %}
+        </div>
+      </header>
+
+      <div class="content-body">
+        {% include 'includes/messages.html' %}
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <script src="{% static 'js/main.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

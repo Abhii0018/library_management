@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - LibriCore Library</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'images/library-logo.svg' %}">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">
+        <img src="{% static 'images/library-logo.svg' %}" alt="LibriCore Academic Library Logo">
+      </div>
+      <div class="auth-brand-pill">
+        <span>🏛️</span> LIBRICORE ATHENAEUM
+      </div>
+      <h2 class="auth-title">Library Sign In</h2>
+      <p class="auth-subtitle">Access your digital library catalog, active loans, and circulation services</p>
+      <div class="auth-roles-hint">
+        <span>🛡️ Administrator</span> &bull; 
+        <span>📚 Staff</span> &bull; 
+        <span>🎓 Student Member</span>
+      </div>
+    </div>
+
+    {% include 'includes/messages.html' %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger" style="margin-bottom: 20px;">
+        {{ form.non_field_errors.0 }}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label class="form-label" for="{{ form.username.id_for_label }}">Library Username / Member ID</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <div class="form-error">{{ form.username.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password }}
+        {% if form.password.errors %}
+          <div class="form-error">{{ form.password.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div style="margin-top: 26px;">
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 15px;">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+          Sign In to Library
+        </button>
+      </div>
+    </form>
+
+    <div class="auth-footer">
+      New student or researcher? <a href="{% url 'accounts:register' %}"><strong>Register Member Account</strong></a>
+    </div>
+  </div>
+  <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

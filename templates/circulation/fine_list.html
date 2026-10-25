@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Fine Management - LibriCore{% endblock %}
+{% block page_title %}Fine Management{% endblock %}
+{% block page_subtitle %}Track and collect overdue library fines{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Pending Fines</div>
+      <div class="stat-value" style="color: var(--danger);">₹{{ total_pending }}</div>
+      <div class="stat-subtext">Awaiting payment by members</div>
+    </div>
+    <div class="stat-icon stat-red">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Collected Fines</div>
+      <div class="stat-value" style="color: var(--success);">₹{{ total_paid }}</div>
+      <div class="stat-subtext">Successfully settled fines</div>
+    </div>
+    <div class="stat-icon stat-green">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar-container">
+  <form method="get" class="search-filter-form">
+    <div class="search-input-group">
+      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by member, book title, ID...">
+    </div>
+
+    <select name="status" class="form-select" style="max-width: 170px;" onchange="this.form.submit()">
+      <option value="">All Fines</option>
+      <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Only</option>
+      <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid Only</option>
+    </select>
+
+    <button type="submit" class="btn btn-secondary">Filter</button>
+    {% if query or status_filter %}
+      <a href="{% url 'circulation:fine_list' %}" class="btn btn-secondary" title="Clear filters">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Fee ID</th>
+          <th>Member</th>
+          <th>Book Title</th>
+          <th>Issue Date</th>
+          <th>Return Date</th>
+          <th>Duration</th>
+          <th>Fee Amount</th>
+          <th>Status</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fine in fines %}
+          <tr>
+            <td>#{{ fine.pk }}</td>
+            <td>
+              <a href="{% url 'accounts:member_detail' fine.member.pk %}" style="font-weight: 600;">
+                {{ fine.member.get_full_name|default:fine.member.username }}
+              </a>
+              <div style="font-size: 12px; color: var(--text-muted);">
+                {{ fine.member.member_profile.membership_id }}
+              </div>
+            </td>
+            <td>
+              <a href="{% url 'books:book_detail' fine.borrow_record.book.pk %}">
+                {{ fine.borrow_record.book.title }}
+              </a>
+            </td>
+            <td>{{ fine.borrow_record.issue_date|date:"M d, Y" }}</td>
+            <td>{{ fine.borrow_record.return_date|date:"M d, Y"|default:"Active" }}</td>
+            <td>{{ fine.duration_days|default:fine.borrow_record.borrowing_duration }} days</td>
+            <td>
+              <strong style="font-size: 15px;">₹{{ fine.amount }}</strong>
+            </td>
+            <td>
+              {% if fine.is_paid %}
+                <span class="badge badge-success">
+                  <span class="badge-dot"></span> Paid
+                </span>
+              {% else %}
+                <span class="badge badge-danger">
+                  <span class="badge-dot"></span> Pending
+                </span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              {% if not fine.is_paid %}
+                <form method="post" action="{% url 'circulation:mark_fine_paid' fine.pk %}" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-success" data-confirm="Mark borrowing fee of ₹{{ fine.amount }} as paid?">
+                    Mark Paid
+                  </button>
+                </form>
+              {% else %}
+                <span style="font-size: 13px; color: var(--text-muted);">Paid on {{ fine.paid_date|date:"M d, Y" }}</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-state-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div class="empty-state-title">No fines found</div>
+                <div class="empty-state-desc">
+                  No records matching the filter. All members are in good standing!
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

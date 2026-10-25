@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - LibriCore{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}Fill in the details below to save member information{% endblock %}
+
+{% block content %}
+<div style="max-width: 700px;">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">{{ title }}</div>
+    </div>
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {{ form.non_field_errors.0 }}
+          </div>
+        {% endif %}
+
+        {% if form.username %}
+          <div class="form-group">
+            <label class="form-label" for="{{ form.username.id_for_label }}">Username *</label>
+            {{ form.username }}
+            {% if form.username.errors %}<div class="form-error">{{ form.username.errors.0 }}</div>{% endif %}
+          </div>
+        {% endif %}
+
+        {% if form.password %}
+          <div class="form-group">
+            <label class="form-label" for="{{ form.password.id_for_label }}">Temporary Password *</label>
+            {{ form.password }}
+            {% if form.password.errors %}<div class="form-error">{{ form.password.errors.0 }}</div>{% endif %}
+            <div class="form-text">Member can change this after logging in.</div>
+          </div>
+        {% endif %}
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.first_name.id_for_label }}">First Name</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}<div class="form-error">{{ form.first_name.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.last_name.id_for_label }}">Last Name</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}<div class="form-error">{{ form.last_name.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.email.id_for_label }}">Email Address</label>
+            {{ form.email }}
+            {% if form.email.errors %}<div class="form-error">{{ form.email.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.phone.id_for_label }}">Phone Number</label>
+            {{ form.phone }}
+            {% if form.phone.errors %}<div class="form-error">{{ form.phone.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+
+        {% if form.membership_id %}
+          <div class="form-group">
+            <label class="form-label" for="{{ form.membership_id.id_for_label }}">Membership ID (Optional)</label>
+            {{ form.membership_id }}
+            {% if form.membership_id.errors %}<div class="form-error">{{ form.membership_id.errors.0 }}</div>{% endif %}
+            <div class="form-text">Leave blank to automatically generate a unique ID.</div>
+          </div>
+        {% endif %}
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.max_books_allowed.id_for_label }}">Max Books Allowed</label>
+            {{ form.max_books_allowed }}
+            {% if form.max_books_allowed.errors %}<div class="form-error">{{ form.max_books_allowed.errors.0 }}</div>{% endif %}
+          </div>
+
+          {% if form.is_blocked %}
+            <div class="form-group" style="display: flex; align-items: center; padding-top: 26px;">
+              <label class="form-check">
+                {{ form.is_blocked }}
+                <span class="form-label" style="margin-bottom: 0;">Block this member from borrowing</span>
+              </label>
+              {% if form.is_blocked.errors %}<div class="form-error">{{ form.is_blocked.errors.0 }}</div>{% endif %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.address.id_for_label }}">Mailing Address</label>
+          {{ form.address }}
+          {% if form.address.errors %}<div class="form-error">{{ form.address.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-actions">
+          <a href="{% url 'accounts:member_list' %}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Save Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

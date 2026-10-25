@@ -1,0 +1,497 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LibriCore | Digital Athenaeum & Library Management</title>
+  <meta name="description" content="LibriCore is a modern digital library portal for browsing catalog volumes, managing borrowing requests, tracking returns, and empowering scholarly excellence.">
+  <link rel="icon" type="image/svg+xml" href="{% static 'images/library-logo.svg' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <style>
+    /* In-page smooth scrolling & category chip styles */
+    html {
+      scroll-behavior: smooth;
+    }
+    .landing-category-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .landing-cat-tag {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #e2e8f0;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    .landing-cat-tag:hover {
+      background: var(--gold);
+      color: #ffffff;
+      border-color: var(--gold);
+      transform: translateY(-1px);
+    }
+    .policy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 22px;
+      margin-top: 36px;
+    }
+    .policy-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    .policy-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0c2340;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .policy-title svg {
+      width: 20px;
+      height: 20px;
+      color: var(--gold);
+    }
+    .policy-desc {
+      font-size: 13.5px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body class="landing-page-wrap">
+
+  <!-- Sticky Navbar -->
+  <header class="landing-navbar">
+    <a href="{% url 'dashboard:index' %}" class="landing-brand">
+      <img src="{% static 'images/library-logo.svg' %}" alt="LibriCore Shield" class="landing-brand-logo">
+      <div>
+        <div class="landing-brand-title">LibriCore</div>
+        <div class="landing-brand-sub">Digital Athenaeum</div>
+      </div>
+    </a>
+
+    <nav class="landing-nav-links">
+      <a href="#catalog">Catalog</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#collections">Featured Volumes</a>
+      <a href="#hours">Policies & Hours</a>
+    </nav>
+
+    <div class="landing-nav-actions">
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard:index' %}" class="btn btn-primary" style="padding: 9px 18px; font-size: 13.5px;">
+          <svg style="width:16px; height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          Go to Dashboard
+        </a>
+        <form method="POST" action="{% url 'accounts:logout' %}" style="margin: 0; display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary" style="padding: 9px 14px; font-size: 13.5px; background: rgba(255,255,255,0.1); color: #ffffff; border-color: rgba(255,255,255,0.2);">
+            Log Out
+          </button>
+        </form>
+      {% else %}
+        <a href="{% url 'accounts:login' %}" class="btn btn-secondary" style="padding: 9px 18px; font-size: 13.5px; background: rgba(255,255,255,0.1); color: #ffffff; border-color: rgba(255,255,255,0.25);">
+          Sign In
+        </a>
+        <a href="{% url 'accounts:register' %}" class="btn btn-primary" style="padding: 9px 18px; font-size: 13.5px;">
+          Join Library
+        </a>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="landing-hero" id="catalog">
+    <div class="landing-hero-content">
+      <div class="hero-pill">
+        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+        </svg>
+        Scholarly Excellence & Digital Athenaeum
+      </div>
+
+      <h1 class="hero-title">
+        Where Timeless Wisdom Meets <span>Modern Intelligence</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Access an extensive collection of academic texts, literature, and research volumes. Request borrowings instantly, track due dates, and explore curated knowledge shelves.
+      </p>
+
+      <!-- Hero Search Box -->
+      <form method="GET" action="{% url 'books:book_list' %}" class="hero-search-box">
+        <svg style="width: 20px; height: 20px; color: #94a3b8; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input type="text" name="q" placeholder="Search by title, author, category, or ISBN..." autocomplete="off">
+        <button type="submit" class="hero-search-btn">
+          Explore
+          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+          </svg>
+        </button>
+      </form>
+
+      <!-- Category Filter Quick Links -->
+      {% if categories %}
+      <div class="landing-category-pills">
+        <span style="font-size: 12px; color: #94a3b8; align-self: center; font-weight: 600;">Browse Topics:</span>
+        {% for cat in categories %}
+          <a href="{% url 'books:book_list' %}?category={{ cat.id }}" class="landing-cat-tag">{{ cat.name }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="hero-actions" style="margin-top: 36px;">
+        <a href="{% url 'books:book_list' %}" class="btn btn-secondary" style="background: rgba(255,255,255,0.15); color: #ffffff; border-color: rgba(255,255,255,0.3); padding: 12px 26px;">
+          Browse Full Catalog
+        </a>
+        {% if not user.is_authenticated %}
+        <a href="{% url 'accounts:register' %}" class="btn btn-primary" style="padding: 12px 26px;">
+          Create Free Member Card
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Floating Stats Grid -->
+  <div class="landing-stats-wrap">
+    <div class="landing-stats-container">
+      <div class="landing-stat-card">
+        <div class="landing-stat-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
+        </div>
+        <div>
+          <div class="landing-stat-num">{{ total_books|default:"0" }}</div>
+          <div class="landing-stat-text">Unique Catalog Titles</div>
+        </div>
+      </div>
+
+      <div class="landing-stat-card">
+        <div class="landing-stat-icon" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0;">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="landing-stat-num">{{ total_available_copies|default:"0" }}</div>
+          <div class="landing-stat-text">Copies Ready on Shelf</div>
+        </div>
+      </div>
+
+      <div class="landing-stat-card">
+        <div class="landing-stat-icon" style="background: #fffbeb; color: #b45309; border-color: #fde68a;">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="landing-stat-num">{{ total_members|default:"0" }}</div>
+          <div class="landing-stat-text">Enrolled Readers</div>
+        </div>
+      </div>
+
+      <div class="landing-stat-card">
+        <div class="landing-stat-icon" style="background: #fdf2f8; color: #be185d; border-color: #fbcfe8;">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+          </svg>
+        </div>
+        <div>
+          <div class="landing-stat-num">{{ total_categories|default:"0" }}</div>
+          <div class="landing-stat-text">Curated Disciplines</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Featured Books Section -->
+  <section class="landing-section" id="collections">
+    <div class="section-head">
+      <span class="section-pill">Library Shelves</span>
+      <h2 class="section-title">Featured Academic & Literature Volumes</h2>
+      <p class="section-desc">Browse highlights from our current repository. Click any title to check availability and submit your borrowing request.</p>
+    </div>
+
+    <div class="books-grid">
+      {% for book in featured_books %}
+      <div class="book-showcase-card">
+        <div class="book-showcase-header">
+          <div class="book-spine-art">
+            <svg style="width:26px; height:26px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+          </div>
+          <div class="book-showcase-info">
+            <h3 class="book-showcase-title">{{ book.title }}</h3>
+            <div class="book-showcase-author">by {{ book.author }}</div>
+            {% if book.category %}
+              <span class="badge badge-info" style="font-size: 11px;">{{ book.category.name }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if book.description %}
+          <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+            {{ book.description }}
+          </p>
+        {% endif %}
+
+        <div class="book-meta-pills">
+          {% if book.available_copies > 0 %}
+            <span class="badge badge-success" style="font-size: 11.5px;">
+              <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#10b981; margin-right:4px;"></span>
+              {{ book.available_copies }} of {{ book.total_copies }} Available
+            </span>
+          {% else %}
+            <span class="badge badge-danger" style="font-size: 11.5px;">All Copies Issued</span>
+          {% endif %}
+          <span style="font-size: 11px; color: #94a3b8; margin-left: auto;">ISBN: {{ book.isbn }}</span>
+        </div>
+
+        <div style="margin-top: 16px; display: flex; gap: 8px;">
+          <a href="{% url 'books:book_detail' book.pk %}" class="btn btn-secondary" style="flex: 1; padding: 7px 12px; font-size: 13px; text-align: center; justify-content: center;">
+            View Details
+          </a>
+          {% if user.is_authenticated and user.role == 'member' and book.available_copies > 0 %}
+          <a href="{% url 'books:book_detail' book.pk %}" class="btn btn-primary" style="padding: 7px 14px; font-size: 13px;">
+            Request
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div style="grid-column: 1 / -1; text-align: center; padding: 48px; background: #ffffff; border-radius: var(--radius-md); border: 1px solid #e2e8f0;">
+        <p style="color: #64748b; font-size: 15px;">No books cataloged yet. Check back soon!</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="text-align: center; margin-top: 40px;">
+      <a href="{% url 'books:book_list' %}" class="btn btn-primary" style="padding: 12px 28px;">
+        Explore All {{ total_books }} Titles
+        <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section class="landing-section" id="how-it-works" style="background: #f1f5f9; max-width: 100%; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+    <div style="max-width: 1220px; margin: 0 auto; width: 100%;">
+      <div class="section-head">
+        <span class="section-pill">Simplified Workflow</span>
+        <h2 class="section-title">How Digital Borrowing Works</h2>
+        <p class="section-desc">Borrowing books at LibriCore is designed to be frictionless, transparent, and completely paperless.</p>
+      </div>
+
+      <div class="workflow-grid">
+        <div class="workflow-card">
+          <div class="step-badge">Step 01</div>
+          <div class="workflow-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+          <h3 class="workflow-title">Explore & Find</h3>
+          <p class="workflow-desc">
+            Search our comprehensive catalog by title, author, or discipline. Check real-time shelf copy counts and preview volume descriptions.
+          </p>
+        </div>
+
+        <div class="workflow-card">
+          <div class="step-badge">Step 02</div>
+          <div class="workflow-icon" style="background: #fffbeb; color: var(--gold-dark);">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+          </div>
+          <h3 class="workflow-title">1-Click Request</h3>
+          <p class="workflow-desc">
+            Choose your borrowing timeframe (1 to 30 days) and submit your request. There is no complicated paperwork or physical queuing.
+          </p>
+        </div>
+
+        <div class="workflow-card">
+          <div class="step-badge">Step 03</div>
+          <div class="workflow-icon" style="background: #ecfdf5; color: #059669;">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+          <h3 class="workflow-title">Instant Issuance</h3>
+          <p class="workflow-desc">
+            When approved by library staff, the loan begins immediately. Collect your physical copy from the reception desk anytime.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Policies & Operating Hours Section -->
+  <section class="landing-section" id="hours">
+    <div class="section-head">
+      <span class="section-pill">Reader Information</span>
+      <h2 class="section-title">Library Hours & Reader Policies</h2>
+      <p class="section-desc">Our doors are open to support research, quiet contemplation, and group discussions.</p>
+    </div>
+
+    <div class="policy-grid">
+      <div class="policy-card">
+        <div class="policy-title">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Operating Hours
+        </div>
+        <p class="policy-desc">
+          <strong>Monday – Friday:</strong> 8:00 AM – 9:00 PM<br>
+          <strong>Saturday:</strong> 9:00 AM – 6:00 PM<br>
+          <strong>Sunday & Holidays:</strong> Reading room access only (10:00 AM – 4:00 PM).
+        </p>
+      </div>
+
+      <div class="policy-card">
+        <div class="policy-title">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          Loan Allowances
+        </div>
+        <p class="policy-desc">
+          Enrolled members can borrow up to <strong>3 volumes simultaneously</strong> for periods up to 30 calendar days per request.
+        </p>
+      </div>
+
+      <div class="policy-card">
+        <div class="policy-title">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Fair Fine Policy
+        </div>
+        <p class="policy-desc">
+          Overdue volumes incur a nominal fine of <strong>$1.00 per day</strong> past the due date. Settle balances easily at the circulation desk.
+        </p>
+      </div>
+
+      <div class="policy-card">
+        <div class="policy-title">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+          Inquiries & Support
+        </div>
+        <p class="policy-desc">
+          Need a book not in our index? Reach out to our research desk at <strong>circulation@libricore.edu</strong> or call ext. 4402.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Big Call to Action Banner -->
+  <div style="max-width: 1220px; margin: 0 auto; width: 100%;">
+    <div class="landing-banner">
+      <h2 class="banner-title">Start Your Scholarly Journey Today</h2>
+      <p class="banner-desc">
+        Join students, scholars, and avid readers across campus. Register in 30 seconds to begin browsing and requesting books.
+      </p>
+      <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 10;">
+        {% if user.is_authenticated %}
+          <a href="{% url 'dashboard:index' %}" class="btn btn-primary" style="padding: 13px 30px; font-size: 15px;">
+            Open My Dashboard
+          </a>
+        {% else %}
+          <a href="{% url 'accounts:register' %}" class="btn btn-primary" style="padding: 13px 30px; font-size: 15px;">
+            Create Student Account
+          </a>
+          <a href="{% url 'accounts:login' %}" class="btn btn-secondary" style="background: rgba(255,255,255,0.15); color: #ffffff; border-color: rgba(255,255,255,0.3); padding: 13px 30px; font-size: 15px;">
+            Sign In to Account
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-Column Footer -->
+  <footer class="landing-footer">
+    <div class="footer-top">
+      <div class="footer-col">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+          <img src="{% static 'images/library-logo.svg' %}" alt="Logo" style="width:36px; height:36px;">
+          <div>
+            <div style="font-size:18px; font-weight:800; color:#ffffff;">LibriCore</div>
+            <div style="font-size:10px; color:#fbbf24; text-transform:uppercase; letter-spacing:0.12em; font-weight:700;">Digital Athenaeum</div>
+          </div>
+        </div>
+        <p style="font-size: 13.5px; line-height: 1.6; max-width: 320px;">
+          A next-generation institutional library management platform committed to scholarly discovery, efficient circulation, and academic excellence.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Catalog</h4>
+        <ul>
+          <li><a href="{% url 'books:book_list' %}">Browse All Titles</a></li>
+          <li><a href="{% url 'books:book_list' %}?availability=available">Available on Shelf</a></li>
+          <li><a href="#collections">Featured Volumes</a></li>
+          <li><a href="#how-it-works">Borrowing Rules</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Access</h4>
+        <ul>
+          <li><a href="{% url 'accounts:login' %}">Portal Login</a></li>
+          <li><a href="{% url 'accounts:register' %}">Student Registration</a></li>
+          <li><a href="#hours">Library Schedule</a></li>
+          <li><a href="#hours">Fines & Policies</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Location & Hours</h4>
+        <p style="font-size: 13.5px; line-height: 1.6; margin-bottom: 10px;">
+          <strong>Central Athenaeum Building</strong><br>
+          Wing B, Knowledge Quadrant<br>
+          Mon – Sat: 8:00 AM – 9:00 PM
+        </p>
+        <p style="font-size: 13px; color: #cbd5e1;">
+          Desk Support: +1 (555) 234-5678<br>
+          libricore@athenaeum.edu
+        </p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div>&copy; 2026 LibriCore Library Management System. All rights reserved.</div>
+      <div style="display: flex; gap: 20px;">
+        <a href="#catalog" style="color: #94a3b8; text-decoration: none;">Back to top &uarr;</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ book.title }} - LibriCore{% endblock %}
+{% block page_title %}{{ book.title }}{% endblock %}
+{% block page_subtitle %}By {{ book.author }} • ISBN: {{ book.isbn }}{% endblock %}
+
+{% block page_actions %}
+  {% if request.user.is_librarian %}
+    {% if book.available_copies > 0 %}
+      <a href="{% url 'circulation:issue_book' %}?book_id={{ book.pk }}" class="btn btn-primary">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+        Issue Copy
+      </a>
+    {% endif %}
+    <a href="{% url 'books:book_edit' book.pk %}" class="btn btn-secondary">
+      Edit Book
+    </a>
+    <a href="{% url 'books:book_delete' book.pk %}" class="btn btn-danger">
+      Delete Book
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Availability Status</div>
+      <div class="stat-value" style="font-size: 22px;">
+        {% if book.available_copies > 0 %}
+          <span style="color: var(--success);">In Stock</span>
+        {% else %}
+          <span style="color: var(--danger);">Checked Out</span>
+        {% endif %}
+      </div>
+      <div class="stat-subtext">{{ book.available_copies }} copies on shelf</div>
+    </div>
+    <div class="stat-icon {% if book.available_copies > 0 %}stat-green{% else %}stat-red{% endif %}">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Total Inventory</div>
+      <div class="stat-value">{{ book.total_copies }}</div>
+      <div class="stat-subtext">Total owned copies</div>
+    </div>
+    <div class="stat-icon stat-blue">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Currently Issued</div>
+      <div class="stat-value">{{ book.issued_copies }}</div>
+      <div class="stat-subtext">Borrowed by members</div>
+    </div>
+    <div class="stat-icon stat-amber">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <div class="card-title">Book Metadata</div>
+  </div>
+  <div class="card-body">
+    <div class="form-grid-2">
+      <div>
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">Category:</strong>
+          <div style="margin-top: 4px; font-size: 15px;">{{ book.category.name|default:"Uncategorized" }}</div>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">Shelf Location:</strong>
+          <div style="margin-top: 4px; font-size: 15px;">{{ book.shelf_location|default:"Not specified" }}</div>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">Book Value:</strong>
+          <div style="margin-top: 4px; font-size: 16px; font-weight: 700; color: var(--text-main);">
+            ₹{{ book.book_value }}
+            <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(Replacement / Reference Value)</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">Added on:</strong>
+          <div style="margin-top: 4px; font-size: 15px;">{{ book.added_date|date:"F d, Y" }}</div>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">ISBN:</strong>
+          <div style="margin-top: 4px; font-size: 15px;"><code>{{ book.isbn }}</code></div>
+        </div>
+      </div>
+    </div>
+
+    {% if book.description %}
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+        <strong style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">Synopsis / Summary:</strong>
+        <p style="margin-top: 6px; line-height: 1.6; color: var(--text-main);">{{ book.description }}</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Member Borrow Request Section (Students only) -->
+{% if not request.user.is_librarian %}
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <div class="card-title">Borrow This Book</div>
+    </div>
+    <div class="card-body">
+      {% if user_active_loan %}
+        <div class="alert alert-info">
+          You currently have a borrowed copy of this book.
+        </div>
+      {% elif user_request and user_request.status == 'PENDING' %}
+        <div class="alert alert-warning">
+          <strong>Request Pending:</strong> You requested this book for {{ user_request.requested_days }} days on {{ user_request.requested_at|date:"M d, Y" }}. Please wait for Librarian review.
+        </div>
+      {% elif user_request and user_request.status == 'APPROVED' %}
+        <div class="alert alert-success">
+          <strong>Request Accepted!</strong> This book is now officially borrowed by you.
+        </div>
+      {% elif is_blocked %}
+        <div class="alert alert-danger">
+          Your account is currently blocked. You cannot submit new borrowing requests.
+        </div>
+      {% elif at_borrow_limit %}
+        <div class="alert alert-danger">
+          Maximum borrowing limit reached (3 books). Return a book before requesting another.
+        </div>
+      {% elif book.available_copies <= 0 %}
+        <div class="alert alert-danger">
+          This book currently has no copies available on shelf.
+        </div>
+      {% else %}
+        <p style="margin-bottom: 16px; color: var(--text-muted); font-size: 14px;">
+          To borrow this book, choose how many days you need it and click <strong>Submit Request</strong>.
+          <br>
+          <em>Borrowing Policy: First 2 days are free. ₹20/day from Day 3 onward. A one-time ₹100 penalty applies if duration exceeds 5 days.</em>
+        </p>
+
+        <form method="post" action="{% url 'circulation:create_request' book.pk %}" style="max-width: 400px;">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label" for="id_requested_days">Select Duration (in Days) *</label>
+            <input type="number" name="requested_days" id="id_requested_days" class="form-control" min="1" max="30" value="5" required>
+            <div class="form-text">Sensible borrowing duration: 1 to 30 days.</div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            Request to Borrow
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+{% if request.user.is_librarian %}
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Active Loans for This Book</div>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in active_borrows %}
+            <tr>
+              <td>
+                <a href="{% url 'accounts:member_detail' record.member.pk %}" style="font-weight: 600;">
+                  {{ record.member.get_full_name|default:record.member.username }}
+                </a>
+                <div style="font-size: 12px; color: var(--text-muted);">@{{ record.member.username }}</div>
+              </td>
+              <td>{{ record.issue_date|date:"M d, Y" }}</td>
+              <td>
+                <strong>{{ record.due_date|date:"M d, Y" }}</strong>
+              </td>
+              <td>
+                {% if record.is_currently_overdue %}
+                  <span class="badge badge-danger">Overdue</span>
+                {% else %}
+                  <span class="badge badge-primary">Issued</span>
+                {% endif %}
+              </td>
+              <td style="text-align: right;">
+                <a href="{% url 'circulation:return_book' record.pk %}" class="btn btn-sm btn-warning">
+                  Process Return
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                No copies of this book are currently on loan.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

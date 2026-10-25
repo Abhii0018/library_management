@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Currently Borrowed - LibriCore{% endblock %}
+{% block page_title %}Currently Borrowed Books{% endblock %}
+{% block page_subtitle %}Your active book loans, loan durations, and current borrowing fees{% endblock %}
+
+{% block page_actions %}
+  <a href="{% url 'books:book_list' %}" class="btn btn-primary">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+    Browse Books
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Currently Borrowed Quota</div>
+      <div class="stat-value" style="font-size: 24px;">{{ count }} / {{ max_allowed }}</div>
+      <div class="stat-subtext">Maximum {{ max_allowed }} active books allowed</div>
+    </div>
+    <div class="stat-icon stat-blue">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">My Active Loans</div>
+    <span class="badge badge-primary">{{ count }} active</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Book Title</th>
+          <th>Author</th>
+          <th>ISBN</th>
+          <th>Issue Date</th>
+          <th>Due Date</th>
+          <th>Requested Duration</th>
+          <th>Current Duration</th>
+          <th>Current Fee</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for borrow in active_borrows %}
+          <tr>
+            <td>
+              <a href="{% url 'books:book_detail' borrow.book.pk %}" style="font-weight: 600;">
+                {{ borrow.book.title }}
+              </a>
+            </td>
+            <td>{{ borrow.book.author }}</td>
+            <td><code>{{ borrow.book.isbn }}</code></td>
+            <td>{{ borrow.issue_date|date:"M d, Y" }}</td>
+            <td>
+              <strong style="{% if borrow.is_currently_overdue %}color: var(--danger);{% endif %}">
+                {{ borrow.due_date|date:"M d, Y" }}
+              </strong>
+            </td>
+            <td>{{ borrow.requested_days }} days</td>
+            <td>{{ borrow.borrowing_duration }} days</td>
+            <td>
+              <strong>₹{{ borrow.current_fee }}</strong>
+            </td>
+            <td>
+              {% if borrow.is_currently_overdue %}
+                <span class="badge badge-danger">
+                  <span class="badge-dot"></span> Overdue ({{ borrow.overdue_days }}d)
+                </span>
+              {% else %}
+                <span class="badge badge-primary">
+                  <span class="badge-dot"></span> Active Loan
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-state-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+                <div class="empty-state-title">You currently have no borrowed books.</div>
+                <div class="empty-state-desc">
+                  Browse our catalog and request a book to start borrowing!
+                </div>
+                <div style="margin-top: 16px;">
+                  <a href="{% url 'books:book_list' %}" class="btn btn-primary">Browse Catalog</a>
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

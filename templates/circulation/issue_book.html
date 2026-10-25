@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Issue Book - LibriCore{% endblock %}
+{% block page_title %}Issue Book to Member{% endblock %}
+{% block page_subtitle %}Assign a book copy to an active library member{% endblock %}
+
+{% block content %}
+<div style="max-width: 750px;">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Book Issuance Form</div>
+    </div>
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {{ form.non_field_errors.0 }}
+          </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.member.id_for_label }}">Select Member *</label>
+          {{ form.member }}
+          {% if form.member.errors %}<div class="form-error">{{ form.member.errors.0 }}</div>{% endif %}
+          <div class="form-text">Only active and unblocked members are eligible to borrow.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.book.id_for_label }}">Select Book *</label>
+          {{ form.book }}
+          {% if form.book.errors %}<div class="form-error">{{ form.book.errors.0 }}</div>{% endif %}
+          <div class="form-text">Only books with at least 1 available copy are listed.</div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.issue_date.id_for_label }}">Issue Date *</label>
+            {{ form.issue_date }}
+            {% if form.issue_date.errors %}<div class="form-error">{{ form.issue_date.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.due_date.id_for_label }}">Due Date *</label>
+            {{ form.due_date }}
+            {% if form.due_date.errors %}<div class="form-error">{{ form.due_date.errors.0 }}</div>{% endif %}
+            <div class="form-text">Default loan duration is 14 days.</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.notes.id_for_label }}">Notes / Condition Remarks</label>
+          {{ form.notes }}
+          {% if form.notes.errors %}<div class="form-error">{{ form.notes.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-actions">
+          <a href="{% url 'circulation:transaction_list' %}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">
+            Confirm & Issue Book
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

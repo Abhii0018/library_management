@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Return Book - LibriCore{% endblock %}
+{% block page_title %}Process Book Return{% endblock %}
+{% block page_subtitle %}Record book return, verify overdue status, and calculate fine{% endblock %}
+
+{% block content %}
+<div style="max-width: 750px;">
+  <!-- Summary Card -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <div class="card-title">Loan Summary</div>
+      <span class="badge badge-primary">Loan #{{ borrow_record.pk }}</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid-2">
+        <div>
+          <div style="margin-bottom: 14px;">
+            <span style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">Book:</span>
+            <div style="font-size: 16px; font-weight: 700; margin-top: 2px;">{{ borrow_record.book.title }}</div>
+            <div style="font-size: 13px; color: var(--text-muted);">ISBN: {{ borrow_record.book.isbn }}</div>
+          </div>
+          <div>
+            <span style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">Member:</span>
+            <div style="font-size: 15px; font-weight: 600; margin-top: 2px;">
+              {{ borrow_record.member.get_full_name|default:borrow_record.member.username }}
+            </div>
+            <div style="font-size: 13px; color: var(--text-muted);">
+              ID: {{ borrow_record.member.member_profile.membership_id }}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="margin-bottom: 14px;">
+            <span style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">Issue Date:</span>
+            <div style="font-size: 15px; font-weight: 600; margin-top: 2px;">{{ borrow_record.issue_date|date:"F d, Y" }}</div>
+          </div>
+          <div>
+            <span style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">Due Date:</span>
+            <div style="font-size: 15px; font-weight: 700; color: {% if borrow_record.is_currently_overdue %}var(--danger){% else %}var(--text-main){% endif %}; margin-top: 2px;">
+              {{ borrow_record.due_date|date:"F d, Y" }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overdue & Fine Status Notice -->
+      <div style="margin-top: 24px; padding: 18px; border-radius: var(--radius-md); background: {% if overdue_days_preview > 0 %}var(--warning-light){% else %}var(--success-light){% endif %}; border: 1px solid {% if overdue_days_preview > 0 %}#fde68a{% else %}#a7f3d0{% endif %};">
+        {% if overdue_days_preview > 0 %}
+          <div style="font-weight: 700; color: var(--warning-dark); font-size: 15px;">
+            ⚠️ This loan is overdue by {{ overdue_days_preview }} day(s)!
+          </div>
+          <div style="margin-top: 6px; font-size: 14px; color: var(--warning-dark);">
+            Fine Calculation: <strong>{{ overdue_days_preview }} days × ₹{{ fine_rate }}/day = ₹{{ preview_fine_amount }}</strong>.
+            A fine record will be generated automatically upon submission.
+          </div>
+        {% else %}
+          <div style="font-weight: 700; color: var(--success-dark); font-size: 15px;">
+            ✓ Book returned on or before due date!
+          </div>
+          <div style="margin-top: 4px; font-size: 14px; color: var(--success-dark);">
+            No overdue fines apply for this return (Fine = ₹0.00).
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Return Form -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Confirm Return Date & Condition</div>
+    </div>
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.return_date.id_for_label }}">Return Date *</label>
+          {{ form.return_date }}
+          {% if form.return_date.errors %}<div class="form-error">{{ form.return_date.errors.0 }}</div>{% endif %}
+          <div class="form-text">Changing the return date adjusts the calculated overdue days accordingly.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.notes.id_for_label }}">Return Notes / Remarks</label>
+          {{ form.notes }}
+          {% if form.notes.errors %}<div class="form-error">{{ form.notes.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-actions">
+          <a href="{% url 'circulation:transaction_list' %}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">
+            Confirm & Return Book
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

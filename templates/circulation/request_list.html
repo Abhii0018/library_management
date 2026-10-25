@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Borrow Requests - LibriCore{% endblock %}
+{% block page_title %}Borrow Requests Management{% endblock %}
+{% block page_subtitle %}Review, approve, or reject student book borrowing requests{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Pending Requests</div>
+      <div class="stat-value" style="color: var(--warning);">{{ pending_count }}</div>
+      <div class="stat-subtext">Awaiting your approval</div>
+    </div>
+    <div class="stat-icon stat-amber">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Approved Requests</div>
+      <div class="stat-value" style="color: var(--success);">{{ approved_count }}</div>
+      <div class="stat-subtext">Ready for issuance</div>
+    </div>
+    <div class="stat-icon stat-green">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Total Requests</div>
+      <div class="stat-value">{{ total_requests }}</div>
+      <div class="stat-subtext">All historical requests</div>
+    </div>
+    <div class="stat-icon stat-blue">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar-container">
+  <form method="get" class="search-filter-form">
+    <div class="search-input-group">
+      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by member, book, ISBN, ID...">
+    </div>
+
+    <select name="status" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
+      <option value="">All Statuses</option>
+      <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+      <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+      <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+      <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed / Issued</option>
+    </select>
+
+    <button type="submit" class="btn btn-secondary">Filter</button>
+    {% if query or status_filter %}
+      <a href="{% url 'circulation:request_list' %}" class="btn btn-secondary" title="Clear filters">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Member</th>
+          <th>Book Title</th>
+          <th>Requested Days</th>
+          <th>Requested On</th>
+          <th>Status</th>
+          <th>Reviewed By / Date</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in requests %}
+          <tr>
+            <td>#{{ req.pk }}</td>
+            <td>
+              <a href="{% url 'accounts:member_detail' req.member.pk %}" style="font-weight: 600;">
+                {{ req.member.get_full_name|default:req.member.username }}
+              </a>
+              <div style="font-size: 12px; color: var(--text-muted);">
+                {{ req.member.member_profile.membership_id }}
+              </div>
+            </td>
+            <td>
+              <a href="{% url 'books:book_detail' req.book.pk %}" style="font-weight: 600;">
+                {{ req.book.title }}
+              </a>
+              <div style="font-size: 12px; color: var(--text-muted);">ISBN: {{ req.book.isbn }}</div>
+            </td>
+            <td>
+              <strong>{{ req.requested_days }} days</strong>
+            </td>
+            <td>{{ req.requested_at|date:"M d, Y H:i" }}</td>
+            <td>
+              {% if req.status == 'PENDING' %}
+                <span class="badge badge-warning">
+                  <span class="badge-dot"></span> Pending
+                </span>
+              {% elif req.status == 'APPROVED' %}
+                <span class="badge badge-success">
+                  <span class="badge-dot"></span> Approved
+                </span>
+              {% elif req.status == 'REJECTED' %}
+                <span class="badge badge-danger">
+                  <span class="badge-dot"></span> Rejected
+                </span>
+              {% elif req.status == 'COMPLETED' %}
+                <span class="badge badge-primary">
+                  <span class="badge-dot"></span> Issued
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              {% if req.reviewed_by %}
+                <div style="font-size: 13px;">{{ req.reviewed_by.username }}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">{{ req.reviewed_at|date:"M d, Y" }}</div>
+              {% else %}
+                <span style="color: var(--text-light);">Awaiting review</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              {% if req.status == 'PENDING' %}
+                <div style="display: inline-flex; gap: 6px;">
+                  <form method="post" action="{% url 'circulation:approve_request' req.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-success">Accept</button>
+                  </form>
+                  <form method="post" action="{% url 'circulation:reject_request' req.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                  </form>
+                </div>
+              {% elif req.status == 'APPROVED' %}
+                <span class="badge badge-success"><span class="badge-dot"></span> Borrowed</span>
+              {% else %}
+                <span style="font-size: 13px; color: var(--text-muted);">Closed</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <div class="empty-state-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                </div>
+                <div class="empty-state-title">No borrow requests found</div>
+                <div class="empty-state-desc">
+                  {% if query or status_filter %}
+                    No requests match your current filters.
+                  {% else %}
+                    No borrowing requests submitted by members yet.
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

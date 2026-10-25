@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+
+{% block title %}Member: {{ member.username }} - LibriCore{% endblock %}
+{% block page_title %}{{ member.get_full_name|default:member.username }}{% endblock %}
+{% block page_subtitle %}Member ID: {{ profile.membership_id }} • Registered on {{ profile.created_at|date:"M d, Y" }}{% endblock %}
+
+{% block page_actions %}
+  <a href="{% url 'circulation:issue_book' %}?member_id={{ member.pk }}" class="btn btn-primary {% if profile.is_blocked %}disabled{% endif %}">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    Issue Book to Member
+  </a>
+  <a href="{% url 'accounts:member_edit' member.pk %}" class="btn btn-secondary">
+    Edit Profile
+  </a>
+  <form method="post" action="{% url 'accounts:member_toggle_block' member.pk %}" style="display: inline;">
+    {% csrf_token %}
+    {% if profile.is_blocked %}
+      <button type="submit" class="btn btn-success" data-confirm="Are you sure you want to unblock this member?">
+        Unblock Member
+      </button>
+    {% else %}
+      <button type="submit" class="btn btn-danger" data-confirm="Are you sure you want to block this member from borrowing books?">
+        Block Member
+      </button>
+    {% endif %}
+  </form>
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Membership Status</div>
+      <div class="stat-value" style="font-size: 22px;">
+        {% if profile.is_blocked %}
+          <span style="color: var(--danger);">Blocked</span>
+        {% else %}
+          <span style="color: var(--success);">Active</span>
+        {% endif %}
+      </div>
+      <div class="stat-subtext">Max Limit: {{ profile.max_books_allowed }} books</div>
+    </div>
+    <div class="stat-icon {% if profile.is_blocked %}stat-red{% else %}stat-green{% endif %}">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Currently Borrowed</div>
+      <div class="stat-value">{{ active_borrows.count }}</div>
+      <div class="stat-subtext">Available quota: {{ profile.max_books_allowed|add:"-"|add:active_borrows.count }}</div>
+    </div>
+    <div class="stat-icon stat-blue">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Pending Fines</div>
+      <div class="stat-value" style="color: {% if pending_fine_sum > 0 %}var(--danger){% else %}var(--success){% endif %};">
+        ₹{{ pending_fine_sum }}
+      </div>
+      <div class="stat-subtext">Total Paid: ₹{{ paid_fine_sum }}</div>
+    </div>
+    <div class="stat-icon stat-amber">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 28px;">
+  <div class="card-header">
+    <div class="card-title">Currently Borrowed Books (Active Loans)</div>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Book Title</th>
+          <th>ISBN</th>
+          <th>Issue Date</th>
+          <th>Due Date</th>
+          <th>Status</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in active_borrows %}
+          <tr>
+            <td>
+              <a href="{% url 'books:book_detail' record.book.pk %}" style="font-weight: 600;">
+                {{ record.book.title }}
+              </a>
+              <div style="font-size: 12px; color: var(--text-muted);">by {{ record.book.author }}</div>
+            </td>
+            <td>{{ record.book.isbn }}</td>
+            <td>{{ record.issue_date|date:"M d, Y" }}</td>
+            <td>
+              <strong>{{ record.due_date|date:"M d, Y" }}</strong>
+            </td>
+            <td>
+              {% if record.is_currently_overdue %}
+                <span class="badge badge-danger">
+                  <span class="badge-dot"></span> Overdue ({{ record.overdue_days }} days)
+                </span>
+              {% else %}
+                <span class="badge badge-primary">
+                  <span class="badge-dot"></span> Issued
+                </span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              <a href="{% url 'circulation:return_book' record.pk %}" class="btn btn-sm btn-warning">
+                Return Book
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+              No books currently borrowed by this member.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 28px;">
+  <div class="card-header">
+    <div class="card-title">Borrow Requests</div>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Book Title</th>
+          <th>Requested Duration</th>
+          <th>Requested At</th>
+          <th>Status</th>
+          <th>Reviewed At</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in borrow_requests %}
+          <tr>
+            <td>
+              <a href="{% url 'books:book_detail' req.book.pk %}" style="font-weight: 600;">
+                {{ req.book.title }}
+              </a>
+              <div style="font-size: 12px; color: var(--text-muted);">ISBN: {{ req.book.isbn }}</div>
+            </td>
+            <td><strong>{{ req.requested_days }} days</strong></td>
+            <td>{{ req.requested_at|date:"M d, Y H:i" }}</td>
+            <td>
+              {% if req.status == 'PENDING' %}
+                <span class="badge badge-warning"><span class="badge-dot"></span> Pending Review</span>
+              {% elif req.status == 'APPROVED' %}
+                <span class="badge badge-success"><span class="badge-dot"></span> Approved</span>
+              {% elif req.status == 'REJECTED' %}
+                <span class="badge badge-danger"><span class="badge-dot"></span> Rejected</span>
+              {% elif req.status == 'COMPLETED' %}
+                <span class="badge badge-info"><span class="badge-dot"></span> Issued</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if req.reviewed_at %}
+                {{ req.reviewed_at|date:"M d, Y" }}
+              {% else %}
+                <span style="color: var(--text-muted);">—</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              {% if req.status == 'PENDING' %}
+                <form method="post" action="{% url 'circulation:approve_request' req.pk %}" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-success">Accept</button>
+                </form>
+                <form method="post" action="{% url 'circulation:reject_request' req.pk %}" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                </form>
+              {% elif req.status == 'APPROVED' %}
+                <span class="badge badge-success"><span class="badge-dot"></span> Borrowed</span>
+              {% else %}
+                <span style="color: var(--text-muted);">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+              No borrow requests found for this member.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Complete Borrowing History</div>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Book Title</th>
+          <th>Issue Date</th>
+          <th>Due Date</th>
+          <th>Return Date</th>
+          <th>Status</th>
+          <th>Fine</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in borrow_records %}
+          <tr>
+            <td>
+              <a href="{% url 'books:book_detail' record.book.pk %}">
+                {{ record.book.title }}
+              </a>
+            </td>
+            <td>{{ record.issue_date|date:"M d, Y" }}</td>
+            <td>{{ record.due_date|date:"M d, Y" }}</td>
+            <td>{{ record.return_date|date:"M d, Y"|default:"Active" }}</td>
+            <td>
+              {% if record.status == 'RETURNED' %}
+                <span class="badge badge-success">Returned</span>
+              {% elif record.is_currently_overdue %}
+                <span class="badge badge-danger">Overdue</span>
+              {% else %}
+                <span class="badge badge-primary">Issued</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if record.fine %}
+                {% if record.fine.is_paid %}
+                  <span class="badge badge-success">₹{{ record.fine.amount }} (Paid)</span>
+                {% else %}
+                  <span class="badge badge-danger">₹{{ record.fine.amount }} (Unpaid)</span>
+                {% endif %}
+              {% else %}
+                <span style="color: var(--text-muted);">None</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+              No history found for this member.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

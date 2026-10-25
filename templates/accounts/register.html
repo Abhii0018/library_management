@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student & Member Registration - LibriCore</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'images/library-logo.svg' %}">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body class="auth-page">
+  <div class="auth-card" style="max-width: 540px;">
+    <div class="auth-header">
+      <div class="auth-logo">
+        <img src="{% static 'images/library-logo.svg' %}" alt="LibriCore Academic Library Logo">
+      </div>
+      <div class="auth-brand-pill">
+        <span>🏛️</span> LIBRICORE ACADEMIC
+      </div>
+      <h2 class="auth-title">Library Registration</h2>
+      <p class="auth-subtitle">Create your reader profile to browse and borrow books from the collection</p>
+    </div>
+
+    {% include 'includes/messages.html' %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.first_name.id_for_label }}">First Name</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}<div class="form-error">{{ form.first_name.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.last_name.id_for_label }}">Last Name</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}<div class="form-error">{{ form.last_name.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.username.id_for_label }}">Desired Library Username *</label>
+        {{ form.username }}
+        {% if form.username.errors %}<div class="form-error">{{ form.username.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.email.id_for_label }}">Academic Email Address *</label>
+        {{ form.email }}
+        {% if form.email.errors %}<div class="form-error">{{ form.email.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.password.id_for_label }}">Password *</label>
+          {{ form.password }}
+          {% if form.password.errors %}<div class="form-error">{{ form.password.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.confirm_password.id_for_label }}">Confirm Password *</label>
+          {{ form.confirm_password }}
+          {% if form.confirm_password.errors %}<div class="form-error">{{ form.confirm_password.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.phone.id_for_label }}">Contact Phone Number</label>
+        {{ form.phone }}
+        {% if form.phone.errors %}<div class="form-error">{{ form.phone.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.address.id_for_label }}">Residential / Campus Address</label>
+        {{ form.address }}
+        {% if form.address.errors %}<div class="form-error">{{ form.address.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div style="margin-top: 26px;">
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 15px;">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          Complete Library Registration
+        </button>
+      </div>
+    </form>
+
+    <div class="auth-footer">
+      Already have a registered account? <a href="{% url 'accounts:login' %}"><strong>Sign in here</strong></a>
+    </div>
+  </div>
+  <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

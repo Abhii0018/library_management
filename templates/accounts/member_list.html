@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}Members Directory - LibriCore{% endblock %}
+{% block page_title %}Members Management{% endblock %}
+{% block page_subtitle %}Manage library members, statuses, and borrowing limits{% endblock %}
+
+{% block page_actions %}
+  <a href="{% url 'accounts:member_create' %}" class="btn btn-primary">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+    Add Member
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="toolbar-container">
+  <form method="get" class="search-filter-form">
+    <div class="search-input-group">
+      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by name, username, ID, phone...">
+    </div>
+
+    <select name="status" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
+      <option value="">All Statuses</option>
+      <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Members</option>
+      <option value="blocked" {% if status_filter == 'blocked' %}selected{% endif %}>Blocked Members</option>
+    </select>
+
+    <button type="submit" class="btn btn-secondary">Search</button>
+    {% if query or status_filter %}
+      <a href="{% url 'accounts:member_list' %}" class="btn btn-secondary" title="Clear filters">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Member ID</th>
+          <th>Name / Username</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Limit</th>
+          <th>Joined</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for member in members %}
+          <tr>
+            <td>
+              <a href="{% url 'accounts:member_detail' member.pk %}" style="font-weight: 700;">
+                {{ member.member_profile.membership_id }}
+              </a>
+            </td>
+            <td>
+              <div style="font-weight: 600;">{{ member.get_full_name|default:member.username }}</div>
+              <div style="font-size: 12px; color: var(--text-muted);">@{{ member.username }}</div>
+            </td>
+            <td>{{ member.email|default:"—" }}</td>
+            <td>{{ member.member_profile.phone|default:"—" }}</td>
+            <td>
+              {% if member.member_profile.is_blocked %}
+                <span class="badge badge-danger">
+                  <span class="badge-dot"></span> Blocked
+                </span>
+              {% else %}
+                <span class="badge badge-success">
+                  <span class="badge-dot"></span> Active
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge badge-secondary">{{ member.member_profile.max_books_allowed }} books</span>
+            </td>
+            <td>{{ member.member_profile.created_at|date:"M d, Y" }}</td>
+            <td style="text-align: right;">
+              <a href="{% url 'accounts:member_detail' member.pk %}" class="btn btn-sm btn-secondary">
+                View
+              </a>
+              <a href="{% url 'accounts:member_edit' member.pk %}" class="btn btn-sm btn-secondary">
+                Edit
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <div class="empty-state-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                </div>
+                <div class="empty-state-title">No members found</div>
+                <div class="empty-state-desc">
+                  {% if query or status_filter %}
+                    No members match your search criteria. Try adjusting filters.
+                  {% else %}
+                    No members have registered yet. Click "Add Member" to create one.
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

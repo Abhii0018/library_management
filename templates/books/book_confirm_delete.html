@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Book - LibriCore{% endblock %}
+{% block page_title %}Delete Book Confirmation{% endblock %}
+{% block page_subtitle %}Confirm permanent removal of title from catalog{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px;">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title" style="color: var(--danger);">Confirm Book Deletion</div>
+    </div>
+    <div class="card-body">
+      <p style="font-size: 15px; margin-bottom: 20px;">
+        Are you sure you want to permanently delete <strong>"{{ book.title }}"</strong> (ISBN: <code>{{ book.isbn }}</code>) from the library system?
+      </p>
+
+      <div class="alert alert-warning">
+        This action cannot be undone. All book information will be removed.
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+          <a href="{% url 'books:book_detail' book.pk %}" class="btn btn-secondary">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-danger">
+            Confirm & Delete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

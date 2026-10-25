@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - LibriCore{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}Provide book information and manage shelf inventory{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px;">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">{{ title }}</div>
+    </div>
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {{ form.non_field_errors.0 }}
+          </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.title.id_for_label }}">Book Title *</label>
+          {{ form.title }}
+          {% if form.title.errors %}<div class="form-error">{{ form.title.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.author.id_for_label }}">Author *</label>
+            {{ form.author }}
+            {% if form.author.errors %}<div class="form-error">{{ form.author.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.isbn.id_for_label }}">ISBN *</label>
+            {{ form.isbn }}
+            {% if form.isbn.errors %}<div class="form-error">{{ form.isbn.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.category.id_for_label }}">Category</label>
+            {{ form.category }}
+            {% if form.category.errors %}<div class="form-error">{{ form.category.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.shelf_location.id_for_label }}">Shelf Location</label>
+            {{ form.shelf_location }}
+            {% if form.shelf_location.errors %}<div class="form-error">{{ form.shelf_location.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.total_copies.id_for_label }}">Total Copies Owned *</label>
+            {{ form.total_copies }}
+            {% if form.total_copies.errors %}<div class="form-error">{{ form.total_copies.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.available_copies.id_for_label }}">Available Copies on Shelf *</label>
+            {{ form.available_copies }}
+            {% if form.available_copies.errors %}<div class="form-error">{{ form.available_copies.errors.0 }}</div>{% endif %}
+            <div class="form-text">Cannot exceed total copies.</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.description.id_for_label }}">Description / Synopsis</label>
+          {{ form.description }}
+          {% if form.description.errors %}<div class="form-error">{{ form.description.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-actions">
+          <a href="{% if book %}{% url 'books:book_detail' book.pk %}{% else %}{% url 'books:book_list' %}{% endif %}" class="btn btn-secondary">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary">Save Book</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

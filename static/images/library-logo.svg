@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="shieldGrad" x1="10" y1="10" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0f2b48" />
+      <stop offset="50%" stop-color="#16385c" />
+      <stop offset="100%" stop-color="#0a192f" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="50%" stop-color="#d97706" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <linearGradient id="goldGlow" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fef3c7" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.2" />
+    </linearGradient>
+    <filter id="subtleShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Outer Rounded Crest Shield -->
+  <rect x="8" y="8" width="84" height="84" rx="22" fill="url(#shieldGrad)" stroke="url(#goldGrad)" stroke-width="2.5" filter="url(#subtleShadow)" />
+  
+  <!-- Inner Delicate Golden Inset Line -->
+  <rect x="14" y="14" width="72" height="72" rx="16" fill="none" stroke="url(#goldGrad)" stroke-width="1" stroke-dasharray="3 3" opacity="0.6" />
+
+  <!-- Academic Star / Beacon of Wisdom at Top -->
+  <g transform="translate(50, 26)">
+    <circle cx="0" cy="0" r="2.5" fill="#fde68a" />
+    <path d="M0 -6 L1 -2 L5 0 L1 2 L0 6 L-1 2 L-5 0 L-1 -2 Z" fill="url(#goldGrad)" />
+  </g>
+
+  <!-- Open Book Symbol -->
+  <g transform="translate(50, 56)">
+    <!-- Book Pages Glow / Backing -->
+    <path d="M-28 -12 C-14 -17, -4 -13, 0 -8 C4 -13, 14 -17, 28 -12 L28 12 C14 8, 4 10, 0 16 C-4 10, -14 8, -28 12 Z" fill="#ffffff" opacity="0.95" />
+    
+    <!-- Left Book Page Lines (Text Suggestion) -->
+    <path d="M-22 -5 C-14 -8, -6 -6, -3 -3" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" />
+    <path d="M-22 0 C-14 -3, -6 -1, -3 2" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" />
+    <path d="M-22 5 C-14 2, -6 4, -3 7" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" />
+
+    <!-- Right Book Page Lines -->
+    <path d="M22 -5 C14 -8, 6 -6, 3 -3" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" />
+    <path d="M22 0 C14 -3, 6 -1, 3 2" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" />
+    <path d="M22 5 C14 2, 6 4, 3 7" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" />
+
+    <!-- Book Spine / Binding Center -->
+    <path d="M0 -8 L0 16" stroke="url(#goldGrad)" stroke-width="2.5" stroke-linecap="round" />
+    
+    <!-- Book Bottom Cover Base -->
+    <path d="M-30 14 C-15 9, -5 12, 0 18 C5 12, 15 9, 30 14" fill="none" stroke="url(#goldGrad)" stroke-width="2.5" stroke-linecap="round" />
+
+    <!-- Golden Bookmark Ribbon Hanging -->
+    <path d="M-2 -8 L-2 22 L2 19 L6 22 L6 -8 Z" fill="url(#goldGrad)" opacity="0.9" />
+  </g>
+</svg>

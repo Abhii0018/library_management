@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block title %}Member Dashboard - LibriCore{% endblock %}
+{% block page_title %}My Library Dashboard{% endblock %}
+{% block page_subtitle %}Welcome back, {{ request.user.get_full_name|default:request.user.username }}! Quick overview of your loans, requests, and library standing{% endblock %}
+
+{% block page_actions %}
+  <a href="{% url 'circulation:member_borrowed' %}" class="btn btn-primary">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+    Currently Borrowed
+  </a>
+  <a href="{% url 'books:book_list' %}" class="btn btn-secondary">
+    Browse Books
+  </a>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Metric Cards -->
+<div class="stats-grid">
+  <!-- Currently Borrowed -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Currently Borrowed</div>
+      <div class="stat-value">{{ current_borrows.count }} / 3</div>
+      <div class="stat-subtext">
+        <a href="{% url 'circulation:member_borrowed' %}" style="color: var(--primary); font-weight: 600;">View Borrowed Books &rarr;</a>
+      </div>
+    </div>
+    <div class="stat-icon stat-blue">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+    </div>
+  </div>
+
+  <!-- Pending Requests -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Pending Requests</div>
+      <div class="stat-value" style="color: {% if pending_requests_count > 0 %}var(--warning){% else %}var(--text-main){% endif %};">
+        {{ pending_requests_count }}
+      </div>
+      <div class="stat-subtext">
+        <a href="{% url 'circulation:member_requests' %}" style="color: var(--primary); font-weight: 600;">View Requests &rarr;</a>
+      </div>
+    </div>
+    <div class="stat-icon stat-amber">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2-2z"/></svg>
+    </div>
+  </div>
+
+  <!-- Overdue Books -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Overdue Books</div>
+      <div class="stat-value" style="color: {% if overdue_count > 0 %}var(--danger){% else %}var(--text-main){% endif %};">
+        {{ overdue_count }}
+      </div>
+      <div class="stat-subtext">
+        {% if overdue_count > 0 %}
+          <span style="color: var(--danger); font-weight: 600;">Immediate action required</span>
+        {% else %}
+          <span style="color: var(--success);">All loans in good standing</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="stat-icon {% if overdue_count > 0 %}stat-red{% else %}stat-green{% endif %}">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+  </div>
+
+  <!-- Pending Borrowing Fees -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-label">Pending Borrowing Fees</div>
+      <div class="stat-value" style="color: {% if pending_fine_sum > 0 %}var(--danger){% else %}var(--success){% endif %};">
+        ₹{{ pending_fine_sum }}
+      </div>
+      <div class="stat-subtext">Payable at circulation counter</div>
+    </div>
+    <div class="stat-icon {% if pending_fine_sum > 0 %}stat-amber{% else %}stat-green{% endif %}">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Navigation Action Bar -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <div class="card-title">Quick Services & Navigation</div>
+    <div style="font-size: 13px; color: var(--text-muted);">
+      Member ID: <strong>{{ profile.membership_id|default:"Pending" }}</strong> • Status: 
+      {% if profile.is_blocked %}
+        <strong style="color: var(--danger);">Blocked</strong>
+      {% else %}
+        <strong style="color: var(--success);">Active</strong>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <a href="{% url 'circulation:member_borrowed' %}" class="btn btn-primary">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+        View Currently Borrowed
+      </a>
+      <a href="{% url 'circulation:member_history' %}" class="btn btn-secondary">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        View Borrowing History
+      </a>
+      <a href="{% url 'circulation:member_requests' %}" class="btn btn-secondary">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2-2z"/></svg>
+        View Borrow Requests
+      </a>
+      <a href="{% url 'books:book_list' %}" class="btn btn-secondary">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        Browse Books
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Compact Recent Activity / Preview -->
+<div class="grid-2" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px;">
+  <!-- Currently Borrowed Preview -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Active Loans Quick Glance</div>
+      <a href="{% url 'circulation:member_borrowed' %}" class="btn btn-sm btn-secondary">
+        View All ({{ current_borrows.count }}) &rarr;
+      </a>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Book Title</th>
+            <th>Due Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for borrow in current_borrows|slice:":3" %}
+            <tr>
+              <td>
+                <a href="{% url 'books:book_detail' borrow.book.pk %}" style="font-weight: 600;">
+                  {{ borrow.book.title }}
+                </a>
+              </td>
+              <td>
+                <strong style="{% if borrow.is_currently_overdue %}color: var(--danger);{% endif %}">
+                  {{ borrow.due_date|date:"M d, Y" }}
+                </strong>
+              </td>
+              <td>
+                {% if borrow.is_currently_overdue %}
+                  <span class="badge badge-danger">Overdue</span>
+                {% else %}
+                  <span class="badge badge-primary">Active Loan</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                No books currently borrowed.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Requests Preview -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Recent Borrow Requests</div>
+      <a href="{% url 'circulation:member_requests' %}" class="btn btn-sm btn-secondary">
+        View All &rarr;
+      </a>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Book Title</th>
+            <th>Duration</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in my_requests|slice:":3" %}
+            <tr>
+              <td>
+                <a href="{% url 'books:book_detail' req.book.pk %}" style="font-weight: 600;">
+                  {{ req.book.title }}
+                </a>
+              </td>
+              <td>{{ req.requested_days }} days</td>
+              <td>
+                {% if req.status == 'PENDING' %}
+                  <span class="badge badge-warning">Request Pending</span>
+                {% elif req.status == 'APPROVED' %}
+                  <span class="badge badge-success">Approved & Borrowed</span>
+                {% elif req.status == 'REJECTED' %}
+                  <span class="badge badge-danger">Request Rejected</span>
+                {% else %}
+                  <span class="badge badge-primary">Book Issued</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                No recent borrowing requests.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Transactions - LibriCore{% endblock %}
+{% block page_title %}Circulation Transactions{% endblock %}
+{% block page_subtitle %}Audit all book issues, returns, and overdue loans{% endblock %}
+
+{% block page_actions %}
+  <a href="{% url 'circulation:issue_book' %}" class="btn btn-primary">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    Issue Book
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="toolbar-container">
+  <form method="get" class="search-filter-form">
+    <div class="search-input-group">
+      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by book, ISBN, member name, ID...">
+    </div>
+
+    <select name="status" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
+      <option value="">All Transactions</option>
+      <option value="issued" {% if status_filter == 'issued' %}selected{% endif %}>Currently Issued</option>
+      <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue</option>
+      <option value="returned" {% if status_filter == 'returned' %}selected{% endif %}>Returned</option>
+    </select>
+
+    <button type="submit" class="btn btn-secondary">Filter</button>
+    {% if query or status_filter %}
+      <a href="{% url 'circulation:transaction_list' %}" class="btn btn-secondary" title="Clear filters">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Book Title</th>
+          <th>Member</th>
+          <th>Issue Date</th>
+          <th>Due Date</th>
+          <th>Return Date</th>
+          <th>Requested Duration</th>
+          <th>Actual Duration</th>
+          <th>Fee</th>
+          <th>Status</th>
+          <th>Issued By</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in records %}
+          <tr>
+            <td>#{{ record.pk }}</td>
+            <td>
+              <a href="{% url 'books:book_detail' record.book.pk %}" style="font-weight: 600;">
+                {{ record.book.title }}
+              </a>
+              <div style="font-size: 12px; color: var(--text-muted);">ISBN: {{ record.book.isbn }}</div>
+            </td>
+            <td>
+              <a href="{% url 'accounts:member_detail' record.member.pk %}" style="font-weight: 600;">
+                {{ record.member.get_full_name|default:record.member.username }}
+              </a>
+              <div style="font-size: 12px; color: var(--text-muted);">{{ record.member.member_profile.membership_id }}</div>
+            </td>
+            <td>{{ record.issue_date|date:"M d, Y" }}</td>
+            <td>
+              <strong style="{% if record.is_currently_overdue %}color: var(--danger);{% endif %}">
+                {{ record.due_date|date:"M d, Y" }}
+              </strong>
+            </td>
+            <td>
+              {% if record.return_date %}
+                {{ record.return_date|date:"M d, Y" }}
+              {% else %}
+                <span style="color: var(--text-light);">Active</span>
+              {% endif %}
+            </td>
+            <td>{{ record.requested_days }} days</td>
+            <td>{{ record.borrowing_duration }} days</td>
+            <td>
+              {% if record.fine %}
+                {% if record.fine.is_paid %}
+                  <span class="badge badge-success">₹{{ record.fine.amount }} (Paid)</span>
+                {% else %}
+                  <span class="badge badge-danger">₹{{ record.fine.amount }}</span>
+                {% endif %}
+              {% else %}
+                <span>₹{{ record.current_fee }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if record.status == 'RETURNED' %}
+                <span class="badge badge-success">
+                  <span class="badge-dot"></span> Returned
+                </span>
+              {% elif record.is_currently_overdue %}
+                <span class="badge badge-danger">
+                  <span class="badge-dot"></span> Overdue ({{ record.overdue_days }}d)
+                </span>
+              {% else %}
+                <span class="badge badge-primary">
+                  <span class="badge-dot"></span> Issued
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <span style="font-size: 13px;">{{ record.issued_by.username|default:"Librarian" }}</span>
+            </td>
+            <td style="text-align: right;">
+              {% if record.status != 'RETURNED' %}
+                <a href="{% url 'circulation:return_book' record.pk %}" class="btn btn-sm btn-warning">
+                  Return
+                </a>
+              {% else %}
+                <span style="font-size: 13px; color: var(--text-muted);">Closed</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-state-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                </div>
+                <div class="empty-state-title">No transactions found</div>
+                <div class="empty-state-desc">
+                  {% if query or status_filter %}
+                    No circulation records match your filter criteria.
+                  {% else %}
+                    No books have been issued yet. Click "Issue Book" to start loans.
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
