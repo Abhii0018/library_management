@@ -1,97 +1,110 @@
 {% extends 'base.html' %}
 
-{% block title %}Fine Management - LibriCore{% endblock %}
-{% block page_title %}Fine Management{% endblock %}
-{% block page_subtitle %}Track and collect overdue library fines{% endblock %}
+{% block title %}Borrowing Fee Clearance - LibriCore Athenaeum{% endblock %}
+{% block page_title %}Borrowing Fee Clearance Ledger{% endblock %}
+{% block page_subtitle %}Audit and settle institutional circulation fees, overdue penalties, and account dues{% endblock %}
+
+{% block page_actions %}
+  <a href="{% url 'circulation:admin_borrowed' %}" class="btn btn-secondary">
+    Active Loans
+  </a>
+  <a href="{% url 'circulation:admin_history' %}" class="btn btn-secondary">
+    Loan History
+  </a>
+{% endblock %}
 
 {% block content %}
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Pending Fines</div>
-      <div class="stat-value" style="color: var(--danger);">₹{{ total_pending }}</div>
-      <div class="stat-subtext">Awaiting payment by members</div>
+<!-- Connected 2-Segment Financial Overview Strip -->
+<section class="standing-ledger-strip" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 24px;" aria-label="Fee Clearance Overview">
+  <div class="standing-cell">
+    <div class="standing-kicker">Pending Institutional Fees</div>
+    <div class="standing-value-row">
+      <span class="standing-num" style="{% if total_pending > 0 %}color: var(--danger);{% else %}color: var(--success);{% endif %}">₹{{ total_pending }}</span>
+      <span class="standing-unit">Awaiting Counter Settlement</span>
     </div>
-    <div class="stat-icon stat-red">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-    </div>
-  </div>
-
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Collected Fines</div>
-      <div class="stat-value" style="color: var(--success);">₹{{ total_paid }}</div>
-      <div class="stat-subtext">Successfully settled fines</div>
-    </div>
-    <div class="stat-icon stat-green">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div class="standing-note" style="margin-top: 14px;">
+      <span>Payable at the central circulation counter prior to account renewal</span>
     </div>
   </div>
-</div>
 
-<div class="toolbar-container">
-  <form method="get" class="search-filter-form">
-    <div class="search-input-group">
-      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by member, book title, ID...">
+  <div class="standing-cell">
+    <div class="standing-kicker">Collected & Cleared Fees</div>
+    <div class="standing-value-row">
+      <span class="standing-num" style="color: var(--success);">₹{{ total_paid }}</span>
+      <span class="standing-unit">Successfully Settled</span>
+    </div>
+    <div class="standing-note" style="margin-top: 14px;">
+      <span>Archived receipts recorded to institutional library accounts</span>
+    </div>
+  </div>
+</section>
+
+<!-- Filter Toolbar -->
+<div class="toolbar-container" style="margin-bottom: 24px;">
+  <form method="get" class="search-filter-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; width: 100%;">
+    <div class="search-input-group" style="flex: 1; min-width: 260px;">
+      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <label for="fineSearchInput" class="visually-hidden">Search fines</label>
+      <input type="text" id="fineSearchInput" name="q" value="{{ query }}" class="form-control" placeholder="Search by reader name, volume title, ID...">
     </div>
 
-    <select name="status" class="form-select" style="max-width: 170px;" onchange="this.form.submit()">
-      <option value="">All Fines</option>
-      <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Only</option>
-      <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid Only</option>
+    <label for="fineStatusSelect" class="visually-hidden">Filter by status</label>
+    <select id="fineStatusSelect" name="status" class="form-select" style="max-width: 180px;">
+      <option value="">All Fee Records</option>
+      <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Dues Only</option>
+      <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Settled Only</option>
     </select>
 
-    <button type="submit" class="btn btn-secondary">Filter</button>
+    <button type="submit" class="btn btn-secondary">Apply Filter</button>
     {% if query or status_filter %}
       <a href="{% url 'circulation:fine_list' %}" class="btn btn-secondary" title="Clear filters">Clear</a>
     {% endif %}
   </form>
 </div>
 
-<div class="card">
+<div class="card" aria-label="Fee Ledger Table">
   <div class="table-responsive">
     <table class="table">
       <thead>
         <tr>
-          <th>Fee ID</th>
-          <th>Member</th>
-          <th>Book Title</th>
+          <th>Fee #</th>
+          <th>Reader</th>
+          <th>Volume Title</th>
           <th>Issue Date</th>
           <th>Return Date</th>
           <th>Duration</th>
-          <th>Fee Amount</th>
-          <th>Status</th>
-          <th style="text-align: right;">Action</th>
+          <th>Total Fee</th>
+          <th>Standing</th>
+          <th style="text-align: right;">Settlement Action</th>
         </tr>
       </thead>
       <tbody>
         {% for fine in fines %}
           <tr>
-            <td>#{{ fine.pk }}</td>
+            <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">#{{ fine.pk }}</td>
             <td>
-              <a href="{% url 'accounts:member_detail' fine.member.pk %}" style="font-weight: 600;">
+              <a href="{% url 'accounts:member_detail' fine.member.pk %}" style="font-weight: 600; color: var(--primary-dark);">
                 {{ fine.member.get_full_name|default:fine.member.username }}
               </a>
-              <div style="font-size: 12px; color: var(--text-muted);">
+              <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
                 {{ fine.member.member_profile.membership_id }}
               </div>
             </td>
             <td>
-              <a href="{% url 'books:book_detail' fine.borrow_record.book.pk %}">
+              <a href="{% url 'books:book_detail' fine.borrow_record.book.pk %}" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; color: var(--primary-dark);">
                 {{ fine.borrow_record.book.title }}
               </a>
             </td>
-            <td>{{ fine.borrow_record.issue_date|date:"M d, Y" }}</td>
-            <td>{{ fine.borrow_record.return_date|date:"M d, Y"|default:"Active" }}</td>
+            <td>{{ fine.borrow_record.issue_date|date:"d M Y" }}</td>
+            <td>{{ fine.borrow_record.return_date|date:"d M Y"|default:"Active Loan" }}</td>
             <td>{{ fine.duration_days|default:fine.borrow_record.borrowing_duration }} days</td>
             <td>
-              <strong style="font-size: 15px;">₹{{ fine.amount }}</strong>
+              <strong style="font-family: 'JetBrains Mono', monospace; font-size: 15px; {% if not fine.is_paid %}color: var(--danger);{% else %}color: var(--success);{% endif %}">₹{{ fine.amount }}</strong>
             </td>
             <td>
               {% if fine.is_paid %}
                 <span class="badge badge-success">
-                  <span class="badge-dot"></span> Paid
+                  <span class="badge-dot"></span> Settled
                 </span>
               {% else %}
                 <span class="badge badge-danger">
@@ -103,12 +116,12 @@
               {% if not fine.is_paid %}
                 <form method="post" action="{% url 'circulation:mark_fine_paid' fine.pk %}" style="display: inline;">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-sm btn-success" data-confirm="Mark borrowing fee of ₹{{ fine.amount }} as paid?">
-                    Mark Paid
+                  <button type="submit" class="btn btn-sm btn-primary" data-confirm="Mark borrowing fee of ₹{{ fine.amount }} as paid?">
+                    Mark Cleared
                   </button>
                 </form>
               {% else %}
-                <span style="font-size: 13px; color: var(--text-muted);">Paid on {{ fine.paid_date|date:"M d, Y" }}</span>
+                <span style="font-size: 12px; color: var(--text-muted);">Cleared on {{ fine.paid_date|date:"d M Y" }}</span>
               {% endif %}
             </td>
           </tr>
@@ -117,11 +130,11 @@
             <td colspan="9">
               <div class="empty-state">
                 <div class="empty-state-icon">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 36px; height: 36px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <div class="empty-state-title">No fines found</div>
+                <div class="empty-state-title">No Fee Records Found</div>
                 <div class="empty-state-desc">
-                  No records matching the filter. All members are in good standing!
+                  All member loan accounts are currently in good financial standing with zero outstanding fee dues.
                 </div>
               </div>
             </td>

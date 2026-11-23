@@ -1,70 +1,87 @@
 {% extends 'base.html' %}
 
-{% block title %}Currently Borrowed - LibriCore{% endblock %}
-{% block page_title %}Currently Borrowed Books{% endblock %}
-{% block page_subtitle %}Your active book loans, loan durations, and current borrowing fees{% endblock %}
+{% block title %}My Active Loans - LibriCore Athenaeum{% endblock %}
+{% block page_title %}Currently Borrowed Folios{% endblock %}
+{% block page_subtitle %}Your active book loans, loan terms, and real-time accrued fees{% endblock %}
 
 {% block page_actions %}
   <a href="{% url 'books:book_list' %}" class="btn btn-primary">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-    Browse Books
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+    Browse Stacks
+  </a>
+  <a href="{% url 'circulation:member_history' %}" class="btn btn-secondary">
+    Reading History
   </a>
 {% endblock %}
 
 {% block content %}
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Currently Borrowed Quota</div>
-      <div class="stat-value" style="font-size: 24px;">{{ count }} / {{ max_allowed }}</div>
-      <div class="stat-subtext">Maximum {{ max_allowed }} active books allowed</div>
+<!-- Connected Circulation Quota Gauge Strip -->
+<section class="standing-ledger-strip" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 24px;" aria-label="Member Borrowing Quota">
+  <div class="standing-cell">
+    <div class="standing-kicker">Borrowing Allocation Quota</div>
+    <div class="standing-value-row">
+      <span class="standing-num">{{ count }} / {{ max_allowed }}</span>
+      <span class="standing-unit">Volumes Allocated</span>
     </div>
-    <div class="stat-icon stat-blue">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+    <div class="standing-note" style="margin-top: 14px;">
+      <span>Maximum {{ max_allowed }} concurrent volumes authorized per reader profile</span>
     </div>
   </div>
-</div>
 
-<div class="card">
+  <div class="standing-cell">
+    <div class="standing-kicker">Available Loan Slots</div>
+    <div class="standing-value-row">
+      <span class="standing-num" style="color: var(--success);">{{ max_allowed|add:"-count" }}</span>
+      <span class="standing-unit">Requisition Slots Open</span>
+    </div>
+    <div class="standing-note" style="margin-top: 14px;">
+      <a href="{% url 'books:book_list' %}" class="standing-link">Select next volume from catalog &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<div class="card" aria-label="Active Loan Folios Table">
   <div class="card-header">
-    <div class="card-title">My Active Loans</div>
+    <div class="card-title">Active Folios on Your Desk</div>
     <span class="badge badge-primary">{{ count }} active</span>
   </div>
   <div class="table-responsive">
     <table class="table">
       <thead>
         <tr>
-          <th>Book Title</th>
+          <th>Volume Title</th>
           <th>Author</th>
           <th>ISBN</th>
           <th>Issue Date</th>
           <th>Due Date</th>
-          <th>Requested Duration</th>
-          <th>Current Duration</th>
+          <th>Term</th>
+          <th>Elapsed</th>
           <th>Current Fee</th>
-          <th>Status</th>
+          <th>Standing</th>
         </tr>
       </thead>
       <tbody>
         {% for borrow in active_borrows %}
           <tr>
             <td>
-              <a href="{% url 'books:book_detail' borrow.book.pk %}" style="font-weight: 600;">
+              <a href="{% url 'books:book_detail' borrow.book.pk %}" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; color: var(--primary-dark);">
                 {{ borrow.book.title }}
               </a>
             </td>
             <td>{{ borrow.book.author }}</td>
-            <td><code>{{ borrow.book.isbn }}</code></td>
-            <td>{{ borrow.issue_date|date:"M d, Y" }}</td>
+            <td>
+              <span class="masthead-chip" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color);">{{ borrow.book.isbn }}</span>
+            </td>
+            <td>{{ borrow.issue_date|date:"d M Y" }}</td>
             <td>
               <strong style="{% if borrow.is_currently_overdue %}color: var(--danger);{% endif %}">
-                {{ borrow.due_date|date:"M d, Y" }}
+                {{ borrow.due_date|date:"d M Y" }}
               </strong>
             </td>
-            <td>{{ borrow.requested_days }} days</td>
-            <td>{{ borrow.borrowing_duration }} days</td>
+            <td>{{ borrow.requested_days }}d</td>
+            <td>{{ borrow.borrowing_duration }}d</td>
             <td>
-              <strong>₹{{ borrow.current_fee }}</strong>
+              <strong style="font-family: 'JetBrains Mono', monospace;">₹{{ borrow.current_fee }}</strong>
             </td>
             <td>
               {% if borrow.is_currently_overdue %}
@@ -72,7 +89,7 @@
                   <span class="badge-dot"></span> Overdue ({{ borrow.overdue_days }}d)
                 </span>
               {% else %}
-                <span class="badge badge-primary">
+                <span class="badge badge-success">
                   <span class="badge-dot"></span> Active Loan
                 </span>
               {% endif %}
@@ -83,14 +100,11 @@
             <td colspan="9">
               <div class="empty-state">
                 <div class="empty-state-icon">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 36px; height: 36px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 </div>
-                <div class="empty-state-title">You currently have no borrowed books.</div>
+                <div class="empty-state-title">No Folios Currently Borrowed</div>
                 <div class="empty-state-desc">
-                  Browse our catalog and request a book to start borrowing!
-                </div>
-                <div style="margin-top: 16px;">
-                  <a href="{% url 'books:book_list' %}" class="btn btn-primary">Browse Catalog</a>
+                  Your reading desk is completely open. Browse the catalog stacks to requisition your next reading.
                 </div>
               </div>
             </td>

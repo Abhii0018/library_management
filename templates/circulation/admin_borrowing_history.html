@@ -1,108 +1,111 @@
 {% extends 'base.html' %}
 
-{% block title %}Borrowing History - LibriCore{% endblock %}
-{% block page_title %}Borrowing History{% endblock %}
-{% block page_subtitle %}Comprehensive audit archive of all completed and returned library transactions{% endblock %}
+{% block title %}Archived Loan History - LibriCore Athenaeum{% endblock %}
+{% block page_title %}Circulation History Ledger{% endblock %}
+{% block page_subtitle %}Comprehensive historical audit archive of completed loans, terms, and settled fees{% endblock %}
 
 {% block page_actions %}
   <a href="{% url 'circulation:admin_borrowed' %}" class="btn btn-secondary">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
     Currently Borrowed
   </a>
   <a href="{% url 'circulation:fine_list' %}" class="btn btn-secondary">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     Borrowing Fees
   </a>
 {% endblock %}
 
 {% block content %}
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Total Returned Loans</div>
-      <div class="stat-value" style="color: var(--success);">{{ total_returned }}</div>
-      <div class="stat-subtext">Archived historical transactions</div>
+<!-- Connected 2-Segment Archival Overview Strip -->
+<section class="standing-ledger-strip" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 24px;" aria-label="Historical Circulation Overview">
+  <div class="standing-cell">
+    <div class="standing-kicker">Archived Returns</div>
+    <div class="standing-value-row">
+      <span class="standing-num" style="color: var(--success);">{{ total_returned }}</span>
+      <span class="standing-unit">Volumes Successfully Restocked</span>
     </div>
-    <div class="stat-icon stat-green">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-    </div>
-  </div>
-
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Total Fines Settled</div>
-      <div class="stat-value">₹{{ total_fines_collected }}</div>
-      <div class="stat-subtext">Collected borrowing fees to date</div>
-    </div>
-    <div class="stat-icon stat-purple">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div class="standing-note" style="margin-top: 14px;">
+      <span>Completed borrowing cycles preserved in permanent audit log</span>
     </div>
   </div>
-</div>
 
-<div class="toolbar-container">
-  <form method="get" class="search-filter-form">
-    <div class="search-input-group">
-      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by member, ID, book title, ISBN...">
+  <div class="standing-cell">
+    <div class="standing-kicker">Settled Borrowing Fees</div>
+    <div class="standing-value-row">
+      <span class="standing-num">₹{{ total_fines_collected }}</span>
+      <span class="standing-unit">Total Collected</span>
+    </div>
+    <div class="standing-note" style="margin-top: 14px;">
+      <span>Institutional revenue recovered from circulation fees</span>
+    </div>
+  </div>
+</section>
+
+<!-- Filter Toolbar -->
+<div class="toolbar-container" style="margin-bottom: 24px;">
+  <form method="get" class="search-filter-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; width: 100%;">
+    <div class="search-input-group" style="flex: 1; min-width: 260px;">
+      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <label for="historySearchInput" class="visually-hidden">Search borrowing history</label>
+      <input type="text" id="historySearchInput" name="q" value="{{ query }}" class="form-control" placeholder="Search by reader name, ID, volume title, ISBN...">
     </div>
 
-    <button type="submit" class="btn btn-secondary">Search</button>
+    <button type="submit" class="btn btn-secondary">Search History</button>
     {% if query %}
       <a href="{% url 'circulation:admin_history' %}" class="btn btn-secondary" title="Clear filter">Clear</a>
     {% endif %}
   </form>
 </div>
 
-<div class="card">
+<div class="card" aria-label="Archived Loans Table">
   <div class="table-responsive">
     <table class="table">
       <thead>
         <tr>
-          <th>Transaction ID</th>
-          <th>Member</th>
-          <th>Book Title</th>
+          <th>Folio #</th>
+          <th>Reader</th>
+          <th>Volume Title</th>
           <th>Issue Date</th>
           <th>Due Date</th>
           <th>Return Date</th>
-          <th>Requested Duration</th>
-          <th>Actual Duration</th>
-          <th>Borrowing Fee</th>
-          <th>Status</th>
+          <th>Term</th>
+          <th>Duration</th>
+          <th>Fee Ledger</th>
+          <th>Standing</th>
         </tr>
       </thead>
       <tbody>
         {% for record in records %}
           <tr>
-            <td>#{{ record.pk }}</td>
+            <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">#{{ record.pk }}</td>
             <td>
-              <a href="{% url 'accounts:member_detail' record.member.pk %}" style="font-weight: 600;">
+              <a href="{% url 'accounts:member_detail' record.member.pk %}" style="font-weight: 600; color: var(--primary-dark);">
                 {{ record.member.get_full_name|default:record.member.username }}
               </a>
-              <div style="font-size: 12px; color: var(--text-muted);">
+              <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
                 {{ record.member.member_profile.membership_id }}
               </div>
             </td>
             <td>
-              <a href="{% url 'books:book_detail' record.book.pk %}" style="font-weight: 600;">
+              <a href="{% url 'books:book_detail' record.book.pk %}" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; color: var(--primary-dark);">
                 {{ record.book.title }}
               </a>
-              <div style="font-size: 12px; color: var(--text-muted);">ISBN: {{ record.book.isbn }}</div>
+              <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">ISBN: {{ record.book.isbn }}</div>
             </td>
-            <td>{{ record.issue_date|date:"M d, Y" }}</td>
-            <td>{{ record.due_date|date:"M d, Y" }}</td>
-            <td><strong>{{ record.return_date|date:"M d, Y" }}</strong></td>
-            <td>{{ record.requested_days }} days</td>
-            <td>{{ record.borrowing_duration }} days</td>
+            <td>{{ record.issue_date|date:"d M Y" }}</td>
+            <td>{{ record.due_date|date:"d M Y" }}</td>
+            <td><strong>{{ record.return_date|date:"d M Y" }}</strong></td>
+            <td>{{ record.requested_days }}d</td>
+            <td>{{ record.borrowing_duration }}d</td>
             <td>
               {% if record.fine %}
                 {% if record.fine.is_paid %}
-                  <span class="badge badge-success">₹{{ record.fine.amount }} (Paid)</span>
+                  <span class="badge badge-success">₹{{ record.fine.amount }} (Settled)</span>
                 {% else %}
                   <span class="badge badge-danger">₹{{ record.fine.amount }} (Pending)</span>
                 {% endif %}
               {% else %}
-                <span style="color: var(--success); font-weight: 600;">₹0.00 (Free)</span>
+                <span style="color: var(--success); font-weight: 600; font-size: 12px;">₹0.00 (Complimentary)</span>
               {% endif %}
             </td>
             <td>
@@ -116,14 +119,14 @@
             <td colspan="10">
               <div class="empty-state">
                 <div class="empty-state-icon">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 36px; height: 36px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <div class="empty-state-title">No completed borrowing history found.</div>
+                <div class="empty-state-title">No Completed Loan History Records</div>
                 <div class="empty-state-desc">
                   {% if query %}
-                    No historical records match your search criteria.
+                    No historical circulation records match your search criteria.
                   {% else %}
-                    Returned book transactions will be preserved in this log.
+                    Returned volume transactions will be preserved in this institutional audit log.
                   {% endif %}
                 </div>
               </div>

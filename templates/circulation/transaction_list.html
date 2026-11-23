@@ -6,7 +6,7 @@
 
 {% block page_actions %}
   <a href="{% url 'circulation:issue_book' %}" class="btn btn-primary">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
     Issue Book
   </a>
 {% endblock %}
@@ -15,11 +15,13 @@
 <div class="toolbar-container">
   <form method="get" class="search-filter-form">
     <div class="search-input-group">
-      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by book, ISBN, member name, ID...">
+      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <label for="transactionSearchInput" class="visually-hidden">Search transactions</label>
+      <input type="text" id="transactionSearchInput" name="q" value="{{ query }}" class="form-control" placeholder="Search by book, ISBN, member name, ID…">
     </div>
 
-    <select name="status" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
+    <label for="transactionStatusSelect" class="visually-hidden">Filter by status</label>
+    <select id="transactionStatusSelect" name="status" class="form-select" style="max-width: 180px;">
       <option value="">All Transactions</option>
       <option value="issued" {% if status_filter == 'issued' %}selected{% endif %}>Currently Issued</option>
       <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue</option>

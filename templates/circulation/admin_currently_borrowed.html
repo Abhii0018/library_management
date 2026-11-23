@@ -1,81 +1,87 @@
 {% extends 'base.html' %}
 
-{% block title %}Currently Borrowed - LibriCore{% endblock %}
-{% block page_title %}Currently Borrowed Books{% endblock %}
-{% block page_subtitle %}All active member loans, real-time borrowing durations, and return operations{% endblock %}
+{% block title %}Active Circulation Folios - LibriCore Athenaeum{% endblock %}
+{% block page_title %}Active Circulation Ledger{% endblock %}
+{% block page_subtitle %}Live tracking of all active loans, borrowing terms, overdue audits, and return processing{% endblock %}
 
 {% block page_actions %}
   <a href="{% url 'circulation:admin_history' %}" class="btn btn-secondary">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-    Borrowing History
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    Archived Loans History
   </a>
   <a href="{% url 'circulation:request_list' %}" class="btn btn-primary">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2-2z"/></svg>
-    Borrow Requests
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2-2z"/></svg>
+    Requisitions Queue
   </a>
 {% endblock %}
 
 {% block content %}
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Total Active Borrowings</div>
-      <div class="stat-value">{{ total_active }}</div>
-      <div class="stat-subtext">Books currently out with members</div>
+<!-- Connected 2-Segment Circulation Overview Strip -->
+<section class="standing-ledger-strip" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 24px;" aria-label="Active Circulation Overview">
+  <div class="standing-cell">
+    <div class="standing-kicker">Total Active Circulation</div>
+    <div class="standing-value-row">
+      <span class="standing-num">{{ total_active }}</span>
+      <span class="standing-unit">Volumes Currently Out</span>
     </div>
-    <div class="stat-icon stat-blue">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-    </div>
-  </div>
-
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Overdue Loans</div>
-      <div class="stat-value" style="color: {% if overdue_count > 0 %}var(--danger){% else %}var(--text-main){% endif %};">
-        {{ overdue_count }}
-      </div>
-      <div class="stat-subtext">Past scheduled due date</div>
-    </div>
-    <div class="stat-icon {% if overdue_count > 0 %}stat-red{% else %}stat-green{% endif %}">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div class="standing-note" style="margin-top: 14px;">
+      <span>Active loans across registered institutional readers</span>
     </div>
   </div>
-</div>
 
-<div class="toolbar-container">
-  <form method="get" class="search-filter-form">
-    <div class="search-input-group">
-      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by member, ID, book title, ISBN...">
+  <div class="standing-cell">
+    <div class="standing-kicker">Overdue Violations</div>
+    <div class="standing-value-row">
+      <span class="standing-num" style="{% if overdue_count > 0 %}color: var(--danger);{% else %}color: var(--success);{% endif %}">{{ overdue_count }}</span>
+      <span class="standing-unit">Past Scheduled Due Date</span>
+    </div>
+    <div class="standing-note" style="margin-top: 14px;">
+      {% if overdue_count > 0 %}
+        <span style="color: var(--danger); font-weight: 600;">Immediate return operations required</span>
+      {% else %}
+        <span style="color: var(--success);">All loans proceeding within schedule</span>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- Filter Toolbar -->
+<div class="toolbar-container" style="margin-bottom: 24px;">
+  <form method="get" class="search-filter-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; width: 100%;">
+    <div class="search-input-group" style="flex: 1; min-width: 260px;">
+      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <label for="borrowedSearchInput" class="visually-hidden">Search active loans</label>
+      <input type="text" id="borrowedSearchInput" name="q" value="{{ query }}" class="form-control" placeholder="Search by reader name, ID, volume title, ISBN...">
     </div>
 
-    <select name="status" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
+    <label for="borrowedStatusSelect" class="visually-hidden">Filter by status</label>
+    <select id="borrowedStatusSelect" name="status" class="form-select" style="max-width: 200px;">
       <option value="">All Active Loans</option>
-      <option value="active" {% if status_filter == 'active' %}selected{% endif %}>On Time</option>
-      <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue Only</option>
+      <option value="active" {% if status_filter == 'active' %}selected{% endif %}>On Schedule Only</option>
+      <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue Violations Only</option>
     </select>
 
-    <button type="submit" class="btn btn-secondary">Filter</button>
+    <button type="submit" class="btn btn-secondary">Apply Filter</button>
     {% if query or status_filter %}
       <a href="{% url 'circulation:admin_borrowed' %}" class="btn btn-secondary" title="Clear filters">Clear</a>
     {% endif %}
   </form>
 </div>
 
-<div class="card">
+<div class="card" aria-label="Active Loans Ledger">
   <div class="table-responsive">
     <table class="table">
       <thead>
         <tr>
-          <th>Member</th>
-          <th>Book Title</th>
+          <th>Reader</th>
+          <th>Volume Title</th>
           <th>ISBN</th>
           <th>Issue Date</th>
           <th>Due Date</th>
-          <th>Requested Duration</th>
-          <th>Current Duration</th>
-          <th>Current Fee</th>
-          <th>Status</th>
+          <th>Term</th>
+          <th>Elapsed</th>
+          <th>Fee</th>
+          <th>Standing</th>
           <th style="text-align: right;">Action</th>
         </tr>
       </thead>
@@ -83,30 +89,32 @@
         {% for record in records %}
           <tr>
             <td>
-              <a href="{% url 'accounts:member_detail' record.member.pk %}" style="font-weight: 600;">
+              <a href="{% url 'accounts:member_detail' record.member.pk %}" style="font-weight: 600; color: var(--primary-dark);">
                 {{ record.member.get_full_name|default:record.member.username }}
               </a>
-              <div style="font-size: 12px; color: var(--text-muted);">
+              <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
                 {{ record.member.member_profile.membership_id }}
               </div>
             </td>
             <td>
-              <a href="{% url 'books:book_detail' record.book.pk %}" style="font-weight: 600;">
+              <a href="{% url 'books:book_detail' record.book.pk %}" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; color: var(--primary-dark);">
                 {{ record.book.title }}
               </a>
               <div style="font-size: 12px; color: var(--text-muted);">by {{ record.book.author }}</div>
             </td>
-            <td><code>{{ record.book.isbn }}</code></td>
-            <td>{{ record.issue_date|date:"M d, Y" }}</td>
+            <td>
+              <span class="masthead-chip" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color);">{{ record.book.isbn }}</span>
+            </td>
+            <td>{{ record.issue_date|date:"d M Y" }}</td>
             <td>
               <strong style="{% if record.is_currently_overdue %}color: var(--danger);{% endif %}">
-                {{ record.due_date|date:"M d, Y" }}
+                {{ record.due_date|date:"d M Y" }}
               </strong>
             </td>
-            <td>{{ record.requested_days }} days</td>
-            <td>{{ record.borrowing_duration }} days</td>
+            <td>{{ record.requested_days }}d</td>
+            <td>{{ record.borrowing_duration }}d</td>
             <td>
-              <strong style="font-size: 14px;">₹{{ record.current_fee }}</strong>
+              <strong style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">₹{{ record.current_fee }}</strong>
             </td>
             <td>
               {% if record.is_currently_overdue %}
@@ -114,14 +122,14 @@
                   <span class="badge-dot"></span> Overdue ({{ record.overdue_days }}d)
                 </span>
               {% else %}
-                <span class="badge badge-primary">
-                  <span class="badge-dot"></span> Active
+                <span class="badge badge-success">
+                  <span class="badge-dot"></span> Active Loan
                 </span>
               {% endif %}
             </td>
             <td style="text-align: right;">
-              <a href="{% url 'circulation:return_book' record.pk %}" class="btn btn-sm btn-warning">
-                Return Book
+              <a href="{% url 'circulation:return_book' record.pk %}" class="btn btn-sm btn-primary">
+                Process Return
               </a>
             </td>
           </tr>
@@ -130,14 +138,14 @@
             <td colspan="10">
               <div class="empty-state">
                 <div class="empty-state-icon">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 36px; height: 36px;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <div class="empty-state-title">No currently borrowed books found.</div>
+                <div class="empty-state-title">No Active Circulation Records</div>
                 <div class="empty-state-desc">
                   {% if query or status_filter %}
-                    No active loans match the specified search or filter criteria.
+                    No active loan records match the specified search or filter criteria.
                   {% else %}
-                    All books are currently returned and available in inventory!
+                    All cataloged volumes are currently shelved and available in stacks.
                   {% endif %}
                 </div>
               </div>

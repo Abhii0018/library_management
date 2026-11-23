@@ -1,108 +1,121 @@
 {% extends 'base.html' %}
 
-{% block title %}Borrow Requests - LibriCore{% endblock %}
-{% block page_title %}Borrow Requests Management{% endblock %}
-{% block page_subtitle %}Review, approve, or reject student book borrowing requests{% endblock %}
+{% block title %}Borrow Requisitions Queue - LibriCore Athenaeum{% endblock %}
+{% block page_title %}Borrow Requisitions Queue{% endblock %}
+{% block page_subtitle %}Review, authorize, or decline reader requests for physical collection volumes{% endblock %}
+
+{% block page_actions %}
+  <a href="{% url 'circulation:admin_borrowed' %}" class="btn btn-secondary">
+    Active Loans
+  </a>
+  <a href="{% url 'circulation:issue_book' %}" class="btn btn-primary">
+    Issue Volume Directly
+  </a>
+{% endblock %}
 
 {% block content %}
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Pending Requests</div>
-      <div class="stat-value" style="color: var(--warning);">{{ pending_count }}</div>
-      <div class="stat-subtext">Awaiting your approval</div>
+<!-- Connected 3-Segment Requisitions Queue Strip -->
+<section class="standing-ledger-strip" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;" aria-label="Requisitions Queue Overview">
+  <div class="standing-cell">
+    <div class="standing-kicker">Pending Staff Review</div>
+    <div class="standing-value-row">
+      <span class="standing-num" style="{% if pending_count > 0 %}color: var(--warning);{% endif %}">{{ pending_count }}</span>
+      <span class="standing-unit">Requisitions Awaiting Action</span>
     </div>
-    <div class="stat-icon stat-amber">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-    </div>
-  </div>
-
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Approved Requests</div>
-      <div class="stat-value" style="color: var(--success);">{{ approved_count }}</div>
-      <div class="stat-subtext">Ready for issuance</div>
-    </div>
-    <div class="stat-icon stat-green">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div class="standing-note" style="margin-top: 14px;">
+      <span>Review queue prioritized by submission timestamp</span>
     </div>
   </div>
 
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Total Requests</div>
-      <div class="stat-value">{{ total_requests }}</div>
-      <div class="stat-subtext">All historical requests</div>
+  <div class="standing-cell">
+    <div class="standing-kicker">Approved & Authorized</div>
+    <div class="standing-value-row">
+      <span class="standing-num" style="color: var(--success);">{{ approved_count }}</span>
+      <span class="standing-unit">Ready for Issuance</span>
     </div>
-    <div class="stat-icon stat-blue">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    <div class="standing-note" style="margin-top: 14px;">
+      <span>Volumes cleared for reader collection</span>
     </div>
   </div>
-</div>
 
-<div class="toolbar-container">
-  <form method="get" class="search-filter-form">
-    <div class="search-input-group">
-      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by member, book, ISBN, ID...">
+  <div class="standing-cell">
+    <div class="standing-kicker">Total Historical Requisitions</div>
+    <div class="standing-value-row">
+      <span class="standing-num">{{ total_requests }}</span>
+      <span class="standing-unit">Processed Requisitions</span>
+    </div>
+    <div class="standing-note" style="margin-top: 14px;">
+      <span>All approved, declined, and completed loan terms</span>
+    </div>
+  </div>
+</section>
+
+<!-- Filter Toolbar -->
+<div class="toolbar-container" style="margin-bottom: 24px;">
+  <form method="get" class="search-filter-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; width: 100%;">
+    <div class="search-input-group" style="flex: 1; min-width: 260px;">
+      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <label for="requestSearchInput" class="visually-hidden">Search requests</label>
+      <input type="text" id="requestSearchInput" name="q" value="{{ query }}" class="form-control" placeholder="Search by reader name, volume title, ISBN, ID...">
     </div>
 
-    <select name="status" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
+    <label for="requestStatusSelect" class="visually-hidden">Filter by status</label>
+    <select id="requestStatusSelect" name="status" class="form-select" style="max-width: 190px;">
       <option value="">All Statuses</option>
-      <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-      <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
-      <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+      <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Awaiting Review Only</option>
+      <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved Only</option>
+      <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Declined Only</option>
       <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed / Issued</option>
     </select>
 
-    <button type="submit" class="btn btn-secondary">Filter</button>
+    <button type="submit" class="btn btn-secondary">Apply Filter</button>
     {% if query or status_filter %}
       <a href="{% url 'circulation:request_list' %}" class="btn btn-secondary" title="Clear filters">Clear</a>
     {% endif %}
   </form>
 </div>
 
-<div class="card">
+<div class="card" aria-label="Requisitions Table">
   <div class="table-responsive">
     <table class="table">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Member</th>
-          <th>Book Title</th>
-          <th>Requested Days</th>
+          <th>Req #</th>
+          <th>Reader</th>
+          <th>Volume Title</th>
+          <th>Requested Term</th>
           <th>Requested On</th>
           <th>Status</th>
-          <th>Reviewed By / Date</th>
-          <th style="text-align: right;">Action</th>
+          <th>Reviewer Audit</th>
+          <th style="text-align: right;">Review Action</th>
         </tr>
       </thead>
       <tbody>
         {% for req in requests %}
           <tr>
-            <td>#{{ req.pk }}</td>
+            <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">#{{ req.pk }}</td>
             <td>
-              <a href="{% url 'accounts:member_detail' req.member.pk %}" style="font-weight: 600;">
+              <a href="{% url 'accounts:member_detail' req.member.pk %}" style="font-weight: 600; color: var(--primary-dark);">
                 {{ req.member.get_full_name|default:req.member.username }}
               </a>
-              <div style="font-size: 12px; color: var(--text-muted);">
+              <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
                 {{ req.member.member_profile.membership_id }}
               </div>
             </td>
             <td>
-              <a href="{% url 'books:book_detail' req.book.pk %}" style="font-weight: 600;">
+              <a href="{% url 'books:book_detail' req.book.pk %}" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; color: var(--primary-dark);">
                 {{ req.book.title }}
               </a>
-              <div style="font-size: 12px; color: var(--text-muted);">ISBN: {{ req.book.isbn }}</div>
+              <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">ISBN: {{ req.book.isbn }}</div>
             </td>
             <td>
               <strong>{{ req.requested_days }} days</strong>
             </td>
-            <td>{{ req.requested_at|date:"M d, Y H:i" }}</td>
+            <td>{{ req.requested_at|date:"d M Y, H:i" }}</td>
             <td>
               {% if req.status == 'PENDING' %}
                 <span class="badge badge-warning">
-                  <span class="badge-dot"></span> Pending
+                  <span class="badge-dot"></span> Awaiting Review
                 </span>
               {% elif req.status == 'APPROVED' %}
                 <span class="badge badge-success">
@@ -110,7 +123,7 @@
                 </span>
               {% elif req.status == 'REJECTED' %}
                 <span class="badge badge-danger">
-                  <span class="badge-dot"></span> Rejected
+                  <span class="badge-dot"></span> Declined
                 </span>
               {% elif req.status == 'COMPLETED' %}
                 <span class="badge badge-primary">
@@ -120,10 +133,10 @@
             </td>
             <td>
               {% if req.reviewed_by %}
-                <div style="font-size: 13px;">{{ req.reviewed_by.username }}</div>
-                <div style="font-size: 11px; color: var(--text-muted);">{{ req.reviewed_at|date:"M d, Y" }}</div>
+                <div style="font-size: 12.5px; font-weight: 600;">@{{ req.reviewed_by.username }}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">{{ req.reviewed_at|date:"d M Y" }}</div>
               {% else %}
-                <span style="color: var(--text-light);">Awaiting review</span>
+                <span style="font-size: 12px; color: var(--text-light);">Awaiting review</span>
               {% endif %}
             </td>
             <td style="text-align: right;">
@@ -131,17 +144,17 @@
                 <div style="display: inline-flex; gap: 6px;">
                   <form method="post" action="{% url 'circulation:approve_request' req.pk %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-success">Accept</button>
+                    <button type="submit" class="btn btn-sm btn-primary" data-confirm="Approve borrow requisition #{{ req.pk }} for &quot;{{ req.book.title }}&quot;?">Accept</button>
                   </form>
                   <form method="post" action="{% url 'circulation:reject_request' req.pk %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                    <button type="submit" class="btn btn-sm btn-danger" data-confirm="Decline borrow requisition #{{ req.pk }} for &quot;{{ req.book.title }}&quot;?">Decline</button>
                   </form>
                 </div>
               {% elif req.status == 'APPROVED' %}
-                <span class="badge badge-success"><span class="badge-dot"></span> Borrowed</span>
+                <span class="badge badge-success">Approved & Issued</span>
               {% else %}
-                <span style="font-size: 13px; color: var(--text-muted);">Closed</span>
+                <span style="font-size: 12px; color: var(--text-muted);">Closed</span>
               {% endif %}
             </td>
           </tr>
@@ -150,14 +163,14 @@
             <td colspan="8">
               <div class="empty-state">
                 <div class="empty-state-icon">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 36px; height: 36px;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 </div>
-                <div class="empty-state-title">No borrow requests found</div>
+                <div class="empty-state-title">No Requisitions Found</div>
                 <div class="empty-state-desc">
                   {% if query or status_filter %}
-                    No requests match your current filters.
+                    No borrow requisitions match your current filter settings.
                   {% else %}
-                    No borrowing requests submitted by members yet.
+                    No requisitions currently awaiting review from registered readers.
                   {% endif %}
                 </div>
               </div>

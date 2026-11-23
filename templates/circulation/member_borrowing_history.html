@@ -1,55 +1,55 @@
 {% extends 'base.html' %}
 
-{% block title %}Borrowing History - LibriCore{% endblock %}
-{% block page_title %}Borrowing History{% endblock %}
-{% block page_subtitle %}Review your past completed loans, returned books, and settled borrowing fees{% endblock %}
+{% block title %}Reading History - LibriCore Athenaeum{% endblock %}
+{% block page_title %}Historical Reading Ledger{% endblock %}
+{% block page_subtitle %}Review your past completed loans, returned volumes, and settled borrowing fees{% endblock %}
 
 {% block page_actions %}
   <a href="{% url 'circulation:member_borrowed' %}" class="btn btn-secondary">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
     Currently Borrowed
   </a>
   <a href="{% url 'books:book_list' %}" class="btn btn-primary">
-    Browse Books
+    Browse Catalog
   </a>
 {% endblock %}
 
 {% block content %}
-<div class="card">
+<div class="card" aria-label="Completed Loans Table">
   <div class="card-header">
-    <div class="card-title">Completed Loans</div>
+    <div class="card-title">Completed Loans Ledger</div>
     <span class="badge badge-success">{{ history_records.count }} completed</span>
   </div>
   <div class="table-responsive">
     <table class="table">
       <thead>
         <tr>
-          <th>Book Title</th>
+          <th>Volume Title</th>
           <th>Author</th>
           <th>Issue Date</th>
           <th>Due Date</th>
           <th>Return Date</th>
-          <th>Requested Duration</th>
+          <th>Requested Term</th>
           <th>Actual Duration</th>
-          <th>Borrowing Fee</th>
-          <th>Status</th>
+          <th>Fee Clearance</th>
+          <th>Standing</th>
         </tr>
       </thead>
       <tbody>
         {% for past in history_records %}
           <tr>
             <td>
-              <a href="{% url 'books:book_detail' past.book.pk %}" style="font-weight: 600;">
+              <a href="{% url 'books:book_detail' past.book.pk %}" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; color: var(--primary-dark);">
                 {{ past.book.title }}
               </a>
-              <div style="font-size: 12px; color: var(--text-muted);">ISBN: {{ past.book.isbn }}</div>
+              <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">ISBN: {{ past.book.isbn }}</div>
             </td>
             <td>{{ past.book.author }}</td>
-            <td>{{ past.issue_date|date:"M d, Y" }}</td>
-            <td>{{ past.due_date|date:"M d, Y" }}</td>
-            <td><strong>{{ past.return_date|date:"M d, Y" }}</strong></td>
-            <td>{{ past.requested_days }} days</td>
-            <td>{{ past.borrowing_duration }} days</td>
+            <td>{{ past.issue_date|date:"d M Y" }}</td>
+            <td>{{ past.due_date|date:"d M Y" }}</td>
+            <td><strong>{{ past.return_date|date:"d M Y" }}</strong></td>
+            <td>{{ past.requested_days }}d</td>
+            <td>{{ past.borrowing_duration }}d</td>
             <td>
               {% if past.fine %}
                 {% if past.fine.is_paid %}
@@ -58,7 +58,7 @@
                   <span class="badge badge-danger">₹{{ past.fine.amount }} (Pending)</span>
                 {% endif %}
               {% else %}
-                <span style="color: var(--success); font-weight: 600;">₹0.00 (Free)</span>
+                <span style="color: var(--success); font-weight: 600; font-size: 12px;">₹0.00 (Complimentary)</span>
               {% endif %}
             </td>
             <td>
@@ -72,11 +72,11 @@
             <td colspan="9">
               <div class="empty-state">
                 <div class="empty-state-icon">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 36px; height: 36px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <div class="empty-state-title">No completed borrowing history yet.</div>
+                <div class="empty-state-title">No Completed Loans Recorded</div>
                 <div class="empty-state-desc">
-                  When you return borrowed books, they will be archived here along with your finalized borrowing fees.
+                  Your past loan completions and returned book receipts will appear in this reading log.
                 </div>
               </div>
             </td>
