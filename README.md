@@ -50,35 +50,65 @@ The database comes pre-seeded with sample books, members, categories, active loa
 
 ---
 
-## ⚙️ Setup & Running Instructions
+## Setup and Running Instructions
 
-### 1. Activate Virtual Environment
+### Option A: Using uv (Recommended)
+
+1. Sync dependencies:
 ```bash
-source venv/bin/activate
+uv sync
 ```
 
-### 2. Run Database Migrations
+2. Run database migrations:
 ```bash
-python manage.py migrate
+uv run python manage.py migrate
 ```
 
-### 3. (Optional) Re-seed Demo Data
+3. (Optional) Seed demo data:
 ```bash
-python manage.py seed_library
+uv run python manage.py seed_library
 ```
 
-### 4. Run the Development Server
+4. Run the development server:
 ```bash
-python manage.py runserver
+uv run python manage.py runserver
 ```
 
 Open your browser at `http://127.0.0.1:8000/`.
 
 ---
 
-## 🧪 Running Automated Tests
+### Option B: Traditional Python venv
 
-Run the test suite covering authentication, role decorators, copy concurrency, issue validations, return calculations, and fine generation:
+1. Create and activate virtual environment:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Run migrations and server:
+```bash
+python manage.py migrate
+python manage.py seed_library
+python manage.py runserver
+```
+
+---
+
+## Running Automated Tests
+
+Run the test suite with uv:
+
+```bash
+uv run python manage.py test
+```
+
+Or using standard python inside an activated virtual environment:
 
 ```bash
 python manage.py test
