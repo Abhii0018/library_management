@@ -1,222 +1,370 @@
 {% extends 'base.html' %}
 
-{% block title %}Member Dashboard - LibriCore{% endblock %}
-{% block page_title %}My Library Dashboard{% endblock %}
-{% block page_subtitle %}Welcome back, {{ request.user.get_full_name|default:request.user.username }}! Quick overview of your loans, requests, and library standing{% endblock %}
+{% block title %}Reader Desk &mdash; LibriCore Digital Athenaeum{% endblock %}
+{% block page_title %}Personal Reading Folio{% endblock %}
+{% block page_subtitle %}Registered Member Registry, Active Loans & Circulation Ledger{% endblock %}
 
 {% block page_actions %}
-  <a href="{% url 'circulation:member_borrowed' %}" class="btn btn-primary">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-    Currently Borrowed
-  </a>
   <a href="{% url 'books:book_list' %}" class="btn btn-secondary">
-    Browse Books
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+    Browse Stacks
+  </a>
+  <a href="{% url 'circulation:member_borrowed' %}" class="btn btn-primary">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+    Active Folios ({{ current_loans_count }})
   </a>
 {% endblock %}
 
 {% block content %}
-<!-- Summary Metric Cards -->
-<div class="stats-grid">
-  <!-- Currently Borrowed -->
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Currently Borrowed</div>
-      <div class="stat-value">{{ current_borrows.count }} / 3</div>
-      <div class="stat-subtext">
-        <a href="{% url 'circulation:member_borrowed' %}" style="color: var(--primary); font-weight: 600;">View Borrowed Books &rarr;</a>
-      </div>
-    </div>
-    <div class="stat-icon stat-blue">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-    </div>
-  </div>
-
-  <!-- Pending Requests -->
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Pending Requests</div>
-      <div class="stat-value" style="color: {% if pending_requests_count > 0 %}var(--warning){% else %}var(--text-main){% endif %};">
-        {{ pending_requests_count }}
-      </div>
-      <div class="stat-subtext">
-        <a href="{% url 'circulation:member_requests' %}" style="color: var(--primary); font-weight: 600;">View Requests &rarr;</a>
-      </div>
-    </div>
-    <div class="stat-icon stat-amber">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2-2z"/></svg>
-    </div>
-  </div>
-
-  <!-- Overdue Books -->
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Overdue Books</div>
-      <div class="stat-value" style="color: {% if overdue_count > 0 %}var(--danger){% else %}var(--text-main){% endif %};">
-        {{ overdue_count }}
-      </div>
-      <div class="stat-subtext">
-        {% if overdue_count > 0 %}
-          <span style="color: var(--danger); font-weight: 600;">Immediate action required</span>
+<!-- Archival Reader Folio Masthead -->
+<section class="archival-masthead" aria-label="Reader Profile and Standing">
+  <div class="masthead-eyebrow">Academic Reader Registry &bull; Circulation Ledger</div>
+  <div class="masthead-title-row">
+    <div>
+      <h2 class="masthead-title">{{ request.user.get_full_name|default:request.user.username }}</h2>
+      <div class="masthead-badges">
+        <span class="masthead-chip">ID: {{ profile.membership_id|default:"MEM-ACTIVE" }}</span>
+        {% if profile.is_blocked %}
+          <span class="badge badge-danger">Clearance Suspended</span>
+        {% elif overdue_count > 0 %}
+          <span class="badge badge-warning">Overdue Action Required</span>
         {% else %}
-          <span style="color: var(--success);">All loans in good standing</span>
+          <span class="badge badge-success">Good Standing</span>
         {% endif %}
+        <span class="masthead-chip">{{ profile.user.email|default:"Registered Reader" }}</span>
       </div>
     </div>
-    <div class="stat-icon {% if overdue_count > 0 %}stat-red{% else %}stat-green{% endif %}">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div class="masthead-actions">
+      <a href="{% url 'circulation:member_history' %}" class="btn-masthead-outline">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 15px; height: 15px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Reading Ledger
+      </a>
+      <a href="{% url 'books:book_list' %}" class="btn-masthead-primary">
+        Requisition Volume
+      </a>
     </div>
   </div>
+</section>
 
-  <!-- Pending Borrowing Fees -->
-  <div class="stat-card">
-    <div class="stat-info">
-      <div class="stat-label">Pending Borrowing Fees</div>
-      <div class="stat-value" style="color: {% if pending_fine_sum > 0 %}var(--danger){% else %}var(--success){% endif %};">
-        ₹{{ pending_fine_sum }}
-      </div>
-      <div class="stat-subtext">Payable at circulation counter</div>
+<!-- Standing Ledger Strip (Integrated Quota & Institutional Standing) -->
+<section class="standing-ledger-strip" aria-label="Circulation Standing and Quotas">
+  <div class="standing-cell">
+    <div class="standing-kicker">Circulation Quota</div>
+    <div class="standing-value-row">
+      <span class="standing-num">{{ current_loans_count }} / {{ max_books_allowed }}</span>
+      <span class="standing-unit">Volumes Allocated</span>
     </div>
-    <div class="stat-icon {% if pending_fine_sum > 0 %}stat-amber{% else %}stat-green{% endif %}">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div class="standing-gauge" role="progressbar" aria-valuenow="{{ quota_percent }}" aria-valuemin="0" aria-valuemax="100" aria-label="Borrowing Quota Utilization">
+      <div class="standing-gauge-fill" style="width: {{ quota_percent }}%;"></div>
     </div>
-  </div>
-</div>
-
-<!-- Quick Navigation Action Bar -->
-<div class="card" style="margin-bottom: 24px;">
-  <div class="card-header">
-    <div class="card-title">Quick Services & Navigation</div>
-    <div style="font-size: 13px; color: var(--text-muted);">
-      Member ID: <strong>{{ profile.membership_id|default:"Pending" }}</strong> • Status: 
-      {% if profile.is_blocked %}
-        <strong style="color: var(--danger);">Blocked</strong>
+    <div class="standing-note">
+      {% if quota_available > 0 %}
+        <span>{{ quota_available }} volume{{ quota_available|pluralize }} available for loan</span>
       {% else %}
-        <strong style="color: var(--success);">Active</strong>
+        <span style="color: var(--warning);">Allocation ceiling reached</span>
       {% endif %}
     </div>
   </div>
-  <div class="card-body">
-    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-      <a href="{% url 'circulation:member_borrowed' %}" class="btn btn-primary">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-        View Currently Borrowed
-      </a>
-      <a href="{% url 'circulation:member_history' %}" class="btn btn-secondary">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        View Borrowing History
-      </a>
-      <a href="{% url 'circulation:member_requests' %}" class="btn btn-secondary">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2-2z"/></svg>
-        View Borrow Requests
-      </a>
-      <a href="{% url 'books:book_list' %}" class="btn btn-secondary">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-        Browse Books
-      </a>
-    </div>
-  </div>
-</div>
 
-<!-- Compact Recent Activity / Preview -->
-<div class="grid-2" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px;">
-  <!-- Currently Borrowed Preview -->
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">Active Loans Quick Glance</div>
-      <a href="{% url 'circulation:member_borrowed' %}" class="btn btn-sm btn-secondary">
-        View All ({{ current_borrows.count }}) &rarr;
-      </a>
+  <div class="standing-cell">
+    <div class="standing-kicker">Active Requisitions</div>
+    <div class="standing-value-row">
+      <span class="standing-num" style="{% if pending_requests_count > 0 %}color: var(--warning);{% endif %}">{{ pending_requests_count }}</span>
+      <span class="standing-unit">In Staff Queue</span>
     </div>
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Book Title</th>
-            <th>Due Date</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for borrow in current_borrows|slice:":3" %}
-            <tr>
-              <td>
-                <a href="{% url 'books:book_detail' borrow.book.pk %}" style="font-weight: 600;">
-                  {{ borrow.book.title }}
-                </a>
-              </td>
-              <td>
-                <strong style="{% if borrow.is_currently_overdue %}color: var(--danger);{% endif %}">
-                  {{ borrow.due_date|date:"M d, Y" }}
-                </strong>
-              </td>
-              <td>
-                {% if borrow.is_currently_overdue %}
-                  <span class="badge badge-danger">Overdue</span>
-                {% else %}
-                  <span class="badge badge-primary">Active Loan</span>
-                {% endif %}
-              </td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px;">
-                No books currently borrowed.
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="standing-note" style="margin-top: 18px;">
+      <a href="{% url 'circulation:member_requests' %}" class="standing-link">
+        View Requisition Desk &rarr;
+      </a>
     </div>
   </div>
 
-  <!-- Recent Requests Preview -->
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">Recent Borrow Requests</div>
-      <a href="{% url 'circulation:member_requests' %}" class="btn btn-sm btn-secondary">
-        View All &rarr;
-      </a>
+  <div class="standing-cell">
+    <div class="standing-kicker">Overdue Audit</div>
+    <div class="standing-value-row">
+      <span class="standing-num" style="{% if overdue_count > 0 %}color: var(--danger);{% else %}color: var(--success);{% endif %}">{{ overdue_count }}</span>
+      <span class="standing-unit">Folios Past Due</span>
     </div>
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Book Title</th>
-            <th>Duration</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for req in my_requests|slice:":3" %}
-            <tr>
-              <td>
-                <a href="{% url 'books:book_detail' req.book.pk %}" style="font-weight: 600;">
-                  {{ req.book.title }}
-                </a>
-              </td>
-              <td>{{ req.requested_days }} days</td>
-              <td>
-                {% if req.status == 'PENDING' %}
-                  <span class="badge badge-warning">Request Pending</span>
-                {% elif req.status == 'APPROVED' %}
-                  <span class="badge badge-success">Approved & Borrowed</span>
-                {% elif req.status == 'REJECTED' %}
-                  <span class="badge badge-danger">Request Rejected</span>
-                {% else %}
-                  <span class="badge badge-primary">Book Issued</span>
-                {% endif %}
-              </td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px;">
-                No recent borrowing requests.
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="standing-note" style="margin-top: 18px;">
+      {% if overdue_count > 0 %}
+        <span style="color: var(--danger); font-weight: 600;">Return immediately to avoid penalties</span>
+      {% else %}
+        <span style="color: var(--success);">All loans within schedule</span>
+      {% endif %}
     </div>
   </div>
+
+  <div class="standing-cell">
+    <div class="standing-kicker">Borrowing Fee Balance</div>
+    <div class="standing-value-row">
+      <span class="standing-num" style="{% if pending_fine_sum > 0 %}color: var(--danger);{% else %}color: var(--success);{% endif %}">₹{{ pending_fine_sum }}</span>
+      <span class="standing-unit">Outstanding</span>
+    </div>
+    <div class="standing-note" style="margin-top: 18px;">
+      <span>Payable at main circulation counter</span>
+    </div>
+  </div>
+</section>
+
+<!-- Editorial Two-Column Reader Environment -->
+<div class="editorial-layout">
+  <!-- Primary Reading Workspace (Left 68%) -->
+  <div class="editorial-workspace">
+    <!-- Active Circulation Folios -->
+    <div class="section-mast">
+      <div>
+        <h3 class="section-mast-title">Folios Currently in Circulation</h3>
+        <span class="section-mast-sub">Volumes actively assigned to your personal study desk</span>
+      </div>
+      <a href="{% url 'circulation:member_borrowed' %}" class="section-mast-link">
+        Complete Loan Ledger &rarr;
+      </a>
+    </div>
+
+    {% if current_borrows %}
+      <div class="active-folios-list">
+        {% for borrow in current_borrows %}
+          <article class="loan-folio" aria-label="Book loan record for {{ borrow.book.title }}">
+            <div class="loan-spine {% if borrow.is_overdue %}spine-overdue{% endif %}"></div>
+            <div class="loan-body">
+              <div class="loan-genre-row">
+                <span>{{ borrow.book.category.name|default:"General Archive"|upper }}</span>
+                <span>&bull;</span>
+                <span>SHELF: {{ borrow.book.shelf_location|default:"Archive Stacks" }}</span>
+                <span>&bull;</span>
+                <span>ISBN: {{ borrow.book.isbn }}</span>
+              </div>
+              <h4 class="loan-title">
+                <a href="{% url 'books:book_detail' borrow.book.pk %}">{{ borrow.book.title }}</a>
+              </h4>
+              <div class="loan-author">Authored by {{ borrow.book.author }}</div>
+              <div class="loan-meta-grid">
+                <div class="loan-meta-item">
+                  <span class="loan-meta-label">Issued On</span>
+                  <span class="loan-meta-val">{{ borrow.issue_date|date:"d M Y" }}</span>
+                </div>
+                <div class="loan-meta-item">
+                  <span class="loan-meta-label">Due Date</span>
+                  <span class="loan-meta-val" style="{% if borrow.is_overdue %}color: var(--danger); font-weight: 700;{% endif %}">{{ borrow.due_date|date:"d M Y" }}</span>
+                </div>
+                <div class="loan-meta-item">
+                  <span class="loan-meta-label">Accrued Fee</span>
+                  <span class="loan-meta-val">₹{{ borrow.current_fee }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="loan-action-col">
+              {% if borrow.is_overdue %}
+                <span class="loan-status-pill status-overdue">
+                  <span class="badge-dot" style="background-color: #e11d48;"></span>
+                  Overdue by {{ borrow.abs_diff_days }} day{{ borrow.abs_diff_days|pluralize }}
+                </span>
+              {% elif borrow.days_remaining == 0 %}
+                <span class="loan-status-pill status-due-today">
+                  <span class="badge-dot" style="background-color: #d97706;"></span>
+                  Due Today
+                </span>
+              {% else %}
+                <span class="loan-status-pill status-active">
+                  <span class="badge-dot" style="background-color: #059669;"></span>
+                  {{ borrow.days_remaining }} day{{ borrow.days_remaining|pluralize }} remaining
+                </span>
+              {% endif %}
+
+              <a href="{% url 'books:book_detail' borrow.book.pk %}" class="btn btn-sm btn-secondary" style="margin-top: 14px;">
+                Inspect Folio &rarr;
+              </a>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <!-- Intentional Archival Empty State -->
+      <div class="archival-empty-panel">
+        <div class="archival-empty-mark">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 28px; height: 28px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        </div>
+        <h4 class="archival-empty-title">No Volumes Currently in Circulation</h4>
+        <p class="archival-empty-text">
+          Your personal reading desk is open. Browse the curated Athenaeum shelf below or search the complete catalog to requisition your next scholarly text.
+        </p>
+        <a href="{% url 'books:book_list' %}" class="btn btn-primary">
+          Browse Athenaeum Catalog &rarr;
+        </a>
+      </div>
+    {% endif %}
+
+    <!-- Curated Athenaeum Volumes (Catalog Discovery Shelf) -->
+    <div class="section-mast" style="margin-top: 36px;">
+      <div>
+        <h3 class="section-mast-title">Curated Stacks for Study</h3>
+        <span class="section-mast-sub">Available volumes cataloged in the institutional archive</span>
+      </div>
+      <a href="{% url 'books:book_list' %}" class="section-mast-link">
+        Search All Volumes &rarr;
+      </a>
+    </div>
+
+    <div class="curated-shelf-grid">
+      {% for book in recommended_books %}
+        <div class="curated-volume-card">
+          <div>
+            <div class="volume-spine-tag">{{ book.category.name|default:"Archive Collection"|upper }}</div>
+            <h4 class="volume-title">
+              <a href="{% url 'books:book_detail' book.pk %}">{{ book.title }}</a>
+            </h4>
+            <div class="volume-author">by {{ book.author }}</div>
+          </div>
+          <div class="volume-footer">
+            <span class="volume-availability">{{ book.available_copies }} on shelf</span>
+            <div style="display: flex; gap: 8px;">
+              <a href="{% url 'books:book_detail' book.pk %}" class="btn btn-sm btn-secondary" style="padding: 4px 10px; font-size: 11.5px;">Details</a>
+              {% if quota_available > 0 and book.available_copies > 0 %}
+                <a href="{% url 'circulation:create_request' book.pk %}" class="btn btn-sm btn-primary" style="padding: 4px 10px; font-size: 11.5px;">Request</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Requisition Ledger -->
+    <div class="section-mast" style="margin-top: 36px;">
+      <div>
+        <h3 class="section-mast-title">Requisition Ledger</h3>
+        <span class="section-mast-sub">Recent borrow requests submitted to circulation staff</span>
+      </div>
+      <a href="{% url 'circulation:member_requests' %}" class="section-mast-link">
+        All Requisitions &rarr;
+      </a>
+    </div>
+
+    <div class="requisition-ledger">
+      {% for req in my_requests|slice:":4" %}
+        <div class="requisition-row">
+          <div class="req-info">
+            <a href="{% url 'books:book_detail' req.book.pk %}" class="req-book-title">{{ req.book.title }}</a>
+            <div class="req-sub">Duration: {{ req.requested_days }} days &bull; Submitted {{ req.requested_at|date:"d M Y, H:i" }}</div>
+          </div>
+          <div class="req-meta">
+            {% if req.status == 'PENDING' %}
+              <span class="badge badge-warning">Awaiting Review</span>
+            {% elif req.status == 'APPROVED' %}
+              <span class="badge badge-success">Approved & Issued</span>
+            {% elif req.status == 'REJECTED' %}
+              <span class="badge badge-danger">Requisition Declined</span>
+            {% else %}
+              <span class="badge badge-primary">Completed</span>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
+          No active requisitions recorded. Submit requests from the catalog to borrow volumes.
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Editorial Study Desk Sidebar (Right 32%) -->
+  <aside class="editorial-sidebar" aria-label="Reading Privileges and Quick Navigation">
+    <!-- Reader Privileges Panel -->
+    <div class="study-desk-panel">
+      <h3 class="desk-panel-title">
+        <span>Circulation Code</span>
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 18px; height: 18px; color: var(--gold);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      </h3>
+      <div class="privilege-item">
+        <div class="privilege-text">
+          <div class="privilege-title">Quota Ceiling</div>
+          Maximum {{ max_books_allowed }} simultaneous volumes per registered reader.
+        </div>
+      </div>
+      <div class="privilege-item">
+        <div class="privilege-text">
+          <div class="privilege-title">Loan Duration</div>
+          Standard borrowing period between 1 and 30 days per requisition.
+        </div>
+      </div>
+      <div class="privilege-item">
+        <div class="privilege-text">
+          <div class="privilege-title">Fee Policy (Section 16)</div>
+          First 2 days free. Day 3 onward ₹20 per day. Excess beyond 5 days incurs an additional ₹100 fine.
+        </div>
+      </div>
+      <div class="privilege-item">
+        <div class="privilege-text">
+          <div class="privilege-title">Settlement Notice</div>
+          Borrowing fees and penalties are settled at the circulation counter prior to account renewal.
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Navigation Desk -->
+    <div class="study-desk-panel">
+      <h3 class="desk-panel-title">
+        <span>Athenaeum Registry</span>
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 18px; height: 18px; color: var(--gold);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      </h3>
+      <ul class="quick-nav-list">
+        <li>
+          <a href="{% url 'books:book_list' %}" class="quick-nav-link">
+            <span>Browse Complete Catalog</span>
+            <span>&rarr;</span>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'circulation:member_borrowed' %}" class="quick-nav-link">
+            <span>Active Borrowed Books ({{ current_loans_count }})</span>
+            <span>&rarr;</span>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'circulation:member_requests' %}" class="quick-nav-link">
+            <span>My Requisition Requests</span>
+            <span>&rarr;</span>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'circulation:member_history' %}" class="quick-nav-link">
+            <span>Historical Reading Ledger</span>
+            <span>&rarr;</span>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'accounts:profile' %}" class="quick-nav-link">
+            <span>Personal Registry Details</span>
+            <span>&rarr;</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Returned Volumes Reading History Snippet -->
+    <div class="study-desk-panel">
+      <h3 class="desk-panel-title">
+        <span>Recent History Snippet</span>
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 18px; height: 18px; color: var(--gold);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </h3>
+      {% if borrow_history %}
+        {% for item in borrow_history|slice:":4" %}
+          <div class="history-snippet-item">
+            <div>
+              <div class="history-snippet-title">{{ item.book.title }}</div>
+              <div class="history-snippet-date">Returned: {{ item.return_date|date:"d M Y"|default:"Recorded" }}</div>
+            </div>
+            <span class="badge badge-secondary" style="font-size: 11px;">Archived</span>
+          </div>
+        {% endfor %}
+        <div style="margin-top: 14px; text-align: right;">
+          <a href="{% url 'circulation:member_history' %}" style="font-size: 12px; font-weight: 600; color: var(--primary);">View Full History &rarr;</a>
+        </div>
+      {% else %}
+        <div style="font-size: 13px; color: var(--text-muted); text-align: center; padding: 12px 0;">
+          No returned loans archived yet.
+        </div>
+      {% endif %}
+    </div>
+  </aside>
 </div>
 {% endblock %}

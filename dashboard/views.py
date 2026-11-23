@@ -149,34 +149,59 @@ def member_dashboard_view(request):
     user = request.user
 
     profile = getattr(user, 'member_profile', None)
+    max_books_allowed = profile.max_books_allowed if profile else 3
 
-    # Member's active loans
-    current_borrows = BorrowRecord.objects.filter(
+    current_borrows_qs = BorrowRecord.objects.filter(
         member=user,
         status=BorrowRecord.STATUS_ISSUED
-    ).select_related('book').order_by('due_date')
+    ).select_related('book', 'book__category').order_by('due_date')
 
-    # Member's borrow requests
+    current_borrows = []
+    for b in current_borrows_qs:
+        diff_days = (b.due_date - today).days
+        b.days_remaining = diff_days
+        b.is_overdue = diff_days < 0
+        b.abs_diff_days = abs(diff_days)
+        current_borrows.append(b)
+
+    current_loans_count = len(current_borrows)
+    quota_available = max(0, max_books_allowed - current_loans_count)
+    quota_percent = min(100, int((current_loans_count / max_books_allowed) * 100)) if max_books_allowed > 0 else 0
+
     my_requests = BorrowRequest.objects.filter(
         member=user
-    ).select_related('book').order_by('-requested_at')
+    ).select_related('book', 'book__category').order_by('-requested_at')
 
-    # Member's loan history
     borrow_history = BorrowRecord.objects.filter(
         member=user,
         status=BorrowRecord.STATUS_RETURNED
-    ).select_related('book', 'fine').order_by('-return_date')[:15]
+    ).select_related('book', 'book__category', 'fine').order_by('-return_date')[:6]
 
-    # Member's fines / fees
     member_fines = Fine.objects.filter(member=user).select_related('borrow_record', 'borrow_record__book')
     pending_fines = member_fines.filter(is_paid=False)
     pending_fine_sum = pending_fines.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
-    overdue_count = sum(1 for b in current_borrows if b.due_date < today)
+    overdue_count = sum(1 for b in current_borrows if b.is_overdue)
     pending_requests_count = my_requests.filter(status=BorrowRequest.STATUS_PENDING).count()
+
+    recommended_books = Book.objects.select_related('category').filter(
+        available_copies__gt=0
+    ).exclude(
+        borrow_records__member=user,
+        borrow_records__status=BorrowRecord.STATUS_ISSUED
+    ).order_by('-added_date')[:4]
+
+    if not recommended_books.exists():
+        recommended_books = Book.objects.select_related('category').filter(
+            available_copies__gt=0
+        ).order_by('-added_date')[:4]
 
     context = {
         'profile': profile,
+        'max_books_allowed': max_books_allowed,
+        'current_loans_count': current_loans_count,
+        'quota_available': quota_available,
+        'quota_percent': quota_percent,
         'current_borrows': current_borrows,
         'my_requests': my_requests,
         'pending_requests_count': pending_requests_count,
@@ -184,6 +209,7 @@ def member_dashboard_view(request):
         'pending_fines': pending_fines,
         'pending_fine_sum': pending_fine_sum,
         'overdue_count': overdue_count,
+        'recommended_books': recommended_books,
         'today': today,
     }
     return render(request, 'dashboard/member_dashboard.html', context)
