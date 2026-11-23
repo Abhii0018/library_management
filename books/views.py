@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import Book, Category
 from .forms import BookForm, CategoryForm
 from accounts.decorators import librarian_required
@@ -12,32 +13,55 @@ def book_list_view(request):
     query = request.GET.get('q', '').strip()
     category_id = request.GET.get('category', '').strip()
     availability = request.GET.get('availability', '').strip()
+    sort_by = request.GET.get('sort', 'title').strip()
 
-    books = Book.objects.select_related('category').all()
+    books_qs = Book.objects.select_related('category').all()
 
     if query:
-        books = books.filter(
+        books_qs = books_qs.filter(
             Q(title__icontains=query) |
             Q(author__icontains=query) |
             Q(isbn__icontains=query)
         )
 
     if category_id:
-        books = books.filter(category_id=category_id)
+        books_qs = books_qs.filter(category_id=category_id)
 
     if availability == 'available':
-        books = books.filter(available_copies__gt=0)
+        books_qs = books_qs.filter(available_copies__gt=0)
     elif availability == 'unavailable':
-        books = books.filter(available_copies=0)
+        books_qs = books_qs.filter(available_copies=0)
+
+    if sort_by == 'newest':
+        books_qs = books_qs.order_by('-added_date')
+    elif sort_by == 'author':
+        books_qs = books_qs.order_by('author')
+    elif sort_by == 'year':
+        books_qs = books_qs.order_by('-publication_year')
+    else:
+        books_qs = books_qs.order_by('title')
+
+    paginator = Paginator(books_qs, 15)
+    page = request.GET.get('page', 1)
+    try:
+        books = paginator.page(page)
+    except PageNotAnInteger:
+        books = paginator.page(1)
+    except EmptyPage:
+        books = paginator.page(paginator.num_pages)
 
     categories = Category.objects.all()
 
     context = {
         'books': books,
+        'page_obj': books,
+        'paginator': paginator,
+        'total_count': books_qs.count(),
         'categories': categories,
         'query': query,
         'selected_category': category_id,
         'selected_availability': availability,
+        'sort_by': sort_by,
     }
     return render(request, 'books/book_list.html', context)
 

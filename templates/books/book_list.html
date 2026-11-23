@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Archival Stacks & Catalog Index - LibriCore Athenaeum{% endblock %}
 {% block page_title %}Athenaeum Catalog Index{% endblock %}
-{% block page_subtitle %}Search, filter, and inspect institutional holdings, monographs, and treatises{% endblock %}
+{% block page_subtitle %}Search, filter, and inspect institutional holdings, monographs, and treatises ({{ total_count }} titles total){% endblock %}
 
 {% block page_actions %}
   {% if request.user.is_librarian %}
@@ -20,14 +21,14 @@
 {% block content %}
 <div class="toolbar-container" style="margin-bottom: 24px;">
   <form method="get" class="search-filter-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; width: 100%;">
-    <div class="search-input-group" style="flex: 1; min-width: 260px;">
+    <div class="search-input-group" style="flex: 1; min-width: 240px;">
       <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
       <label for="bookSearchInput" class="visually-hidden">Search books catalog</label>
       <input type="text" id="bookSearchInput" name="q" value="{{ query }}" class="form-control" placeholder="Search by title, author, or ISBN...">
     </div>
 
     <label for="bookCategorySelect" class="visually-hidden">Filter by category</label>
-    <select id="bookCategorySelect" name="category" class="form-select" style="max-width: 200px;">
+    <select id="bookCategorySelect" name="category" class="form-select" style="max-width: 180px;">
       <option value="">All Disciplines</option>
       {% for cat in categories %}
         <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
@@ -37,14 +38,22 @@
     </select>
 
     <label for="bookAvailabilitySelect" class="visually-hidden">Filter by availability</label>
-    <select id="bookAvailabilitySelect" name="availability" class="form-select" style="max-width: 180px;">
-      <option value="">All Holdings</option>
+    <select id="bookAvailabilitySelect" name="availability" class="form-select" style="max-width: 160px;">
+      <option value="">All Availability</option>
       <option value="available" {% if selected_availability == 'available' %}selected{% endif %}>On Shelves Now</option>
       <option value="unavailable" {% if selected_availability == 'unavailable' %}selected{% endif %}>Checked Out</option>
     </select>
 
-    <button type="submit" class="btn btn-secondary">Apply Filters</button>
-    {% if query or selected_category or selected_availability %}
+    <label for="bookSortSelect" class="visually-hidden">Sort catalog</label>
+    <select id="bookSortSelect" name="sort" class="form-select" style="max-width: 150px;">
+      <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Title (A-Z)</option>
+      <option value="author" {% if sort_by == 'author' %}selected{% endif %}>Author</option>
+      <option value="year" {% if sort_by == 'year' %}selected{% endif %}>Year</option>
+      <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Recently Added</option>
+    </select>
+
+    <button type="submit" class="btn btn-secondary">Filter</button>
+    {% if query or selected_category or selected_availability or sort_by != 'title' %}
       <a href="{% url 'books:book_list' %}" class="btn btn-secondary" title="Clear filters">Clear</a>
     {% endif %}
   </form>
@@ -55,7 +64,7 @@
     <table class="table">
       <thead>
         <tr>
-          <th>Monograph Title & Author</th>
+          <th>Monograph & Bibliographic Details</th>
           <th>ISBN</th>
           <th>Discipline</th>
           <th>Shelf Placement</th>
@@ -68,10 +77,25 @@
         {% for book in books %}
           <tr>
             <td>
-              <a href="{% url 'books:book_detail' book.pk %}" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 16px; color: var(--primary-dark);">
-                {{ book.title }}
-              </a>
-              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">by {{ book.author }}</div>
+              <div style="display: flex; align-items: center; gap: 14px;">
+                {% if book.cover_image %}
+                  <img src="{% static book.cover_image %}" alt="Cover of {{ book.title }}" style="width: 44px; height: 62px; object-fit: cover; border-radius: 4px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); flex-shrink: 0;" loading="lazy">
+                {% else %}
+                  <div style="width: 44px; height: 62px; border-radius: 4px; background: var(--primary-light); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;" aria-hidden="true">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                  </div>
+                {% endif %}
+                <div>
+                  <a href="{% url 'books:book_detail' book.pk %}" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 16px; color: var(--primary-dark);">
+                    {{ book.title }}
+                  </a>
+                  <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">
+                    by {{ book.author }}
+                    {% if book.publication_year %}&bull; <span style="font-family: 'JetBrains Mono', monospace;">{{ book.publication_year }}</span>{% endif %}
+                    {% if book.publisher %}&bull; {{ book.publisher }}{% endif %}
+                  </div>
+                </div>
+              </div>
             </td>
             <td>
               <span class="masthead-chip" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color);">{{ book.isbn }}</span>
@@ -145,5 +169,29 @@
       </tbody>
     </table>
   </div>
+
+  <!-- Pagination Controls -->
+  {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-top: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
+      <div style="font-size: 13px; color: var(--text-muted);">
+        Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ paginator.count }}</strong> titles
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        {% if page_obj.has_previous %}
+          <a href="?page=1{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_availability %}&availability={{ selected_availability }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" class="btn btn-sm btn-secondary">&laquo; First</a>
+          <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_availability %}&availability={{ selected_availability }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" class="btn btn-sm btn-secondary">&lsaquo; Prev</a>
+        {% endif %}
+
+        <span style="font-size: 13px; font-weight: 600; padding: 0 8px; color: var(--primary-dark);">
+          Page {{ page_obj.number }} of {{ paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_availability %}&availability={{ selected_availability }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" class="btn btn-sm btn-secondary">Next &rsaquo;</a>
+          <a href="?page={{ paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_availability %}&availability={{ selected_availability }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" class="btn btn-sm btn-secondary">Last &raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}
