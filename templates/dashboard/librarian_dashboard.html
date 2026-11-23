@@ -55,7 +55,7 @@
 <!-- Connected 4-Segment Institutional Standing Ledger Strip -->
 <section class="standing-ledger-strip" aria-label="Institutional Holdings and Operational Status">
   <div class="standing-cell">
-    <div class="standing-kicker">Holdings & Shelf Availability</div>
+    <div class="standing-kicker">Available Copies & Holdings</div>
     <div class="standing-value-row">
       <span class="standing-num" style="color: var(--success);">{{ total_available_copies }}</span>
       <span class="standing-unit">/ {{ total_copies }} Physical Copies</span>
@@ -64,7 +64,7 @@
       <div class="standing-gauge-fill" style="width: {% if total_copies > 0 %}{% widthratio total_available_copies total_copies 100 %}{% else %}0{% endif %}%;"></div>
     </div>
     <div class="standing-note">
-      <span>{{ total_books }} distinct titles accessioned in stacks</span>
+      <span>{{ total_books }} distinct titles accessioned in stacks (Total Titles: {{ total_books }})</span>
     </div>
   </div>
 
@@ -85,7 +85,7 @@
     <div class="standing-kicker">Reader Registry Standing</div>
     <div class="standing-value-row">
       <span class="standing-num">{{ total_members }}</span>
-      <span class="standing-unit">Registered Readers</span>
+      <span class="standing-unit">Registered Readers (Total Members)</span>
     </div>
     <div class="standing-note" style="margin-top: 18px;">
       <span>{{ active_members }} in good standing &bull; {% if blocked_members > 0 %}<strong style="color: var(--danger);">{{ blocked_members }} blocked</strong>{% else %}0 blocked{% endif %}</span>

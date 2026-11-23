@@ -187,13 +187,15 @@ def member_dashboard_view(request):
     recommended_books = Book.objects.select_related('category').filter(
         available_copies__gt=0
     ).exclude(
-        borrow_records__member=user,
-        borrow_records__status=BorrowRecord.STATUS_ISSUED
+        borrow_records__isnull=False
     ).order_by('-added_date')[:4]
 
     if not recommended_books.exists():
         recommended_books = Book.objects.select_related('category').filter(
             available_copies__gt=0
+        ).exclude(
+            borrow_records__member=user,
+            borrow_records__status=BorrowRecord.STATUS_ISSUED
         ).order_by('-added_date')[:4]
 
     context = {
