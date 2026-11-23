@@ -12,7 +12,7 @@
     </div>
     <div class="card-body">
       <p style="font-size: 15px; margin-bottom: 20px;">
-        Are you sure you want to permanently delete <strong>"{{ book.title }}"</strong> (ISBN: <code>{{ book.isbn }}</code>) from the library system?
+        Are you sure you want to permanently delete <strong>&ldquo;{{ book.title }}&rdquo;</strong> (ISBN: <code>{{ book.isbn }}</code>) from the library system?
       </p>
 
       <div class="alert alert-warning">
@@ -25,8 +25,8 @@
           <a href="{% url 'books:book_detail' book.pk %}" class="btn btn-secondary">
             Cancel
           </a>
-          <button type="submit" class="btn btn-danger">
-            Confirm & Delete
+          <button type="submit" class="btn btn-danger" data-confirm="Permanently delete &quot;{{ book.title }}&quot;?">
+            Delete Book
           </button>
         </div>
       </form>

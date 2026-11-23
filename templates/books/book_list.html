@@ -1,28 +1,34 @@
 {% extends 'base.html' %}
 
-{% block title %}Books Catalog - LibriCore{% endblock %}
-{% block page_title %}Books Catalog{% endblock %}
-{% block page_subtitle %}Search and browse library collection{% endblock %}
+{% block title %}Archival Stacks & Catalog Index - LibriCore Athenaeum{% endblock %}
+{% block page_title %}Athenaeum Catalog Index{% endblock %}
+{% block page_subtitle %}Search, filter, and inspect institutional holdings, monographs, and treatises{% endblock %}
 
 {% block page_actions %}
   {% if request.user.is_librarian %}
     <a href="{% url 'books:book_create' %}" class="btn btn-primary">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-      Add New Book
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Accession New Volume
+    </a>
+  {% else %}
+    <a href="{% url 'circulation:member_borrowed' %}" class="btn btn-secondary">
+      My Borrowed Folios
     </a>
   {% endif %}
 {% endblock %}
 
 {% block content %}
-<div class="toolbar-container">
-  <form method="get" class="search-filter-form">
-    <div class="search-input-group">
-      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by title, author, or ISBN...">
+<div class="toolbar-container" style="margin-bottom: 24px;">
+  <form method="get" class="search-filter-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; width: 100%;">
+    <div class="search-input-group" style="flex: 1; min-width: 260px;">
+      <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <label for="bookSearchInput" class="visually-hidden">Search books catalog</label>
+      <input type="text" id="bookSearchInput" name="q" value="{{ query }}" class="form-control" placeholder="Search by title, author, or ISBN...">
     </div>
 
-    <select name="category" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
-      <option value="">All Categories</option>
+    <label for="bookCategorySelect" class="visually-hidden">Filter by category</label>
+    <select id="bookCategorySelect" name="category" class="form-select" style="max-width: 200px;">
+      <option value="">All Disciplines</option>
       {% for cat in categories %}
         <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
           {{ cat.name }}
@@ -30,30 +36,31 @@
       {% endfor %}
     </select>
 
-    <select name="availability" class="form-select" style="max-width: 170px;" onchange="this.form.submit()">
-      <option value="">All Books</option>
-      <option value="available" {% if selected_availability == 'available' %}selected{% endif %}>Available Now</option>
-      <option value="unavailable" {% if selected_availability == 'unavailable' %}selected{% endif %}>Out of Stock</option>
+    <label for="bookAvailabilitySelect" class="visually-hidden">Filter by availability</label>
+    <select id="bookAvailabilitySelect" name="availability" class="form-select" style="max-width: 180px;">
+      <option value="">All Holdings</option>
+      <option value="available" {% if selected_availability == 'available' %}selected{% endif %}>On Shelves Now</option>
+      <option value="unavailable" {% if selected_availability == 'unavailable' %}selected{% endif %}>Checked Out</option>
     </select>
 
-    <button type="submit" class="btn btn-secondary">Filter</button>
+    <button type="submit" class="btn btn-secondary">Apply Filters</button>
     {% if query or selected_category or selected_availability %}
       <a href="{% url 'books:book_list' %}" class="btn btn-secondary" title="Clear filters">Clear</a>
     {% endif %}
   </form>
 </div>
 
-<div class="card">
+<div class="card" aria-label="Catalog Stacks Table">
   <div class="table-responsive">
     <table class="table">
       <thead>
         <tr>
-          <th>Title / Author</th>
+          <th>Monograph Title & Author</th>
           <th>ISBN</th>
-          <th>Category</th>
-          <th>Location</th>
+          <th>Discipline</th>
+          <th>Shelf Placement</th>
           <th>Availability</th>
-          <th>Total Copies</th>
+          <th>Holdings</th>
           <th style="text-align: right;">Actions</th>
         </tr>
       </thead>
@@ -61,51 +68,59 @@
         {% for book in books %}
           <tr>
             <td>
-              <a href="{% url 'books:book_detail' book.pk %}" style="font-weight: 700; font-size: 15px;">
+              <a href="{% url 'books:book_detail' book.pk %}" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 16px; color: var(--primary-dark);">
                 {{ book.title }}
               </a>
-              <div style="font-size: 13px; color: var(--text-muted);">by {{ book.author }}</div>
+              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">by {{ book.author }}</div>
             </td>
             <td>
-              <code>{{ book.isbn }}</code>
+              <span class="masthead-chip" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color);">{{ book.isbn }}</span>
             </td>
             <td>
               {% if book.category %}
                 <span class="badge badge-secondary">{{ book.category.name }}</span>
               {% else %}
-                <span style="color: var(--text-light);">Uncategorized</span>
+                <span style="font-size: 12px; color: var(--text-light);">Uncategorized</span>
               {% endif %}
             </td>
-            <td>{{ book.shelf_location|default:"—" }}</td>
+            <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted);">
+              {{ book.shelf_location|default:"General Stacks" }}
+            </td>
             <td>
               {% if book.available_copies > 0 %}
                 <span class="badge badge-success">
-                  <span class="badge-dot"></span> {{ book.available_copies }} Available
+                  <span class="badge-dot"></span> {{ book.available_copies }} on shelf
                 </span>
               {% else %}
                 <span class="badge badge-danger">
-                  <span class="badge-dot"></span> 0 Available
+                  <span class="badge-dot"></span> In Circulation
                 </span>
               {% endif %}
             </td>
             <td>
-              <strong>{{ book.total_copies }}</strong> copies
-              <span style="font-size: 11px; color: var(--text-muted);">({{ book.issued_copies }} issued)</span>
+              <strong style="font-family: 'JetBrains Mono', monospace;">{{ book.total_copies }}</strong> copies
+              <div style="font-size: 11px; color: var(--text-muted);">{{ book.issued_copies }} checked out</div>
             </td>
             <td style="text-align: right;">
-              <a href="{% url 'books:book_detail' book.pk %}" class="btn btn-sm btn-secondary">
-                View
-              </a>
-              {% if request.user.is_librarian %}
-                {% if book.available_copies > 0 %}
-                  <a href="{% url 'circulation:issue_book' %}?book_id={{ book.pk }}" class="btn btn-sm btn-primary">
-                    Issue
+              <div style="display: inline-flex; gap: 6px;">
+                <a href="{% url 'books:book_detail' book.pk %}" class="btn btn-sm btn-secondary">
+                  Inspect
+                </a>
+                {% if request.user.is_librarian %}
+                  {% if book.available_copies > 0 %}
+                    <a href="{% url 'circulation:issue_book' %}?book_id={{ book.pk }}" class="btn btn-sm btn-primary">
+                      Issue
+                    </a>
+                  {% endif %}
+                  <a href="{% url 'books:book_edit' book.pk %}" class="btn btn-sm btn-secondary">
+                    Edit
+                  </a>
+                {% elif book.available_copies > 0 %}
+                  <a href="{% url 'circulation:create_request' book.pk %}" class="btn btn-sm btn-primary">
+                    Request
                   </a>
                 {% endif %}
-                <a href="{% url 'books:book_edit' book.pk %}" class="btn btn-sm btn-secondary">
-                  Edit
-                </a>
-              {% endif %}
+              </div>
             </td>
           </tr>
         {% empty %}
@@ -113,14 +128,14 @@
             <td colspan="7">
               <div class="empty-state">
                 <div class="empty-state-icon">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 36px; height: 36px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 </div>
-                <div class="empty-state-title">No books found</div>
+                <div class="empty-state-title">No Catalog Volumes Found</div>
                 <div class="empty-state-desc">
                   {% if query or selected_category or selected_availability %}
-                    No titles match your search criteria. Try modifying your filters.
+                    No cataloged holdings match your current search criteria. Try modifying your search query or discipline filter.
                   {% else %}
-                    No books in catalog yet. Click "Add New Book" to stock books in the library.
+                    No volumes currently archived in this repository branch.
                   {% endif %}
                 </div>
               </div>
