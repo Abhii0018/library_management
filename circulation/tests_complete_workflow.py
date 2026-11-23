@@ -101,10 +101,7 @@ class CompleteLibraryWorkflowTestCase(TestCase):
 
         self.client = Client()
 
-    # ==========================================
-    # 1. MEMBER WORKFLOW TESTS (Section 26: 1-11)
-    # ==========================================
-
+    # Member borrowing and browsing workflows.
     def test_01_member_login(self):
         login = self.client.login(username="student_alice", password="studentpassword123")
         self.assertTrue(login)
@@ -190,10 +187,7 @@ class CompleteLibraryWorkflowTestCase(TestCase):
             resp = self.client.get(url)
             self.assertIn(resp.status_code, [302, 403], f"Member could access {url} with code {resp.status_code}")
 
-    # ==========================================
-    # 2. ADMIN WORKFLOW TESTS (Section 26: 12-29)
-    # ==========================================
-
+    # Staff and administrator circulation workflows.
     def test_12_to_16_admin_views_dashboard_books_members_requests(self):
         self.client.login(username="head_librarian", password="adminpassword123")
 
@@ -373,10 +367,7 @@ class CompleteLibraryWorkflowTestCase(TestCase):
         self.assertContains(mem_res, "LIB-STU-001")
         self.assertContains(mem_res, "Borrow Requests")
 
-    # ==========================================
-    # 3. BORROWING FEE POLICY TESTS (Section 16 & 26)
-    # ==========================================
-
+    # Borrowing fee policy calculations.
     def test_fee_policy_all_cases(self):
         """
         Policy specification:
@@ -399,10 +390,7 @@ class CompleteLibraryWorkflowTestCase(TestCase):
         self.assertEqual(BorrowRecord.calculate_borrowing_fee(6), Decimal('160.00'))
         self.assertEqual(BorrowRecord.calculate_borrowing_fee(7), Decimal('180.00'))
 
-    # ==========================================
-    # 4. VALIDATIONS & CONSTRAINTS TESTS
-    # ==========================================
-
+    # Input validations and operational constraints.
     def test_requested_days_validation_range_1_to_30(self):
         self.client.login(username="student_alice", password="studentpassword123")
 

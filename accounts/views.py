@@ -216,9 +216,7 @@ def member_toggle_block_view(request, pk):
     return redirect('accounts:member_list')
 
 
-# ==========================================
-# STAFF MANAGEMENT (ADMIN-ONLY)
-# ==========================================
+# Staff management endpoints restricted to administrators.
 
 @admin_required
 def staff_list_view(request):

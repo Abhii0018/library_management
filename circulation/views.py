@@ -14,9 +14,7 @@ from accounts.models import User
 from accounts.decorators import librarian_required
 
 
-# ==========================================
-# BORROW REQUESTS (Member & Admin)
-# ==========================================
+# Borrow request workflows for members and administrators.
 
 @login_required
 def create_borrow_request_view(request, book_id):
@@ -30,12 +28,12 @@ def create_borrow_request_view(request, book_id):
     book = get_object_or_404(Book, pk=book_id)
     profile = getattr(request.user, 'member_profile', None)
 
-    # 1. Member Status validation: Blocked members cannot request books
+    # Verify member account standing.
     if profile and profile.is_blocked:
         messages.error(request, "Your account is currently blocked. You cannot submit new borrowing requests.")
         return redirect('books:book_detail', pk=book_id)
 
-    # 2. Maximum Borrowing Limit: Max 3 active borrowed books
+    # Enforce active borrowing quota threshold.
     active_loans = BorrowRecord.objects.filter(
         member=request.user,
         status=BorrowRecord.STATUS_ISSUED
@@ -47,7 +45,7 @@ def create_borrow_request_view(request, book_id):
         )
         return redirect('books:book_detail', pk=book_id)
 
-    # 3. Duplicate Request Prevention: No multiple pending/approved requests for same book
+    # Prevent duplicate pending or approved requests for the same volume.
     existing_request = BorrowRequest.objects.filter(
         member=request.user,
         book=book,
@@ -60,7 +58,7 @@ def create_borrow_request_view(request, book_id):
             messages.info(request, f"Your request for '{book.title}' is approved! Please visit the library counter to borrow it.")
         return redirect('books:book_detail', pk=book_id)
 
-    # 4. Check if member already has an active issued copy of this book
+    # Prevent duplicate active loans for the same volume.
     already_has_book = BorrowRecord.objects.filter(
         member=request.user,
         book=book,
@@ -70,7 +68,7 @@ def create_borrow_request_view(request, book_id):
         messages.warning(request, f"You currently have a borrowed copy of '{book.title}'.")
         return redirect('books:book_detail', pk=book_id)
 
-    # 5. Book availability check
+    # Verify shelf copy availability.
     if book.available_copies <= 0:
         messages.error(request, f"'{book.title}' currently has no copies available to request.")
         return redirect('books:book_detail', pk=book_id)
@@ -81,7 +79,7 @@ def create_borrow_request_view(request, book_id):
             requested_days = form.cleaned_data['requested_days']
             notes = form.cleaned_data['notes']
 
-            # Create request with PENDING status (does NOT decrease copies)
+            # Persist pending borrow request without copy count decrement.
             borrow_req = BorrowRequest.objects.create(
                 member=request.user,
                 book=book,
@@ -156,18 +154,18 @@ def approve_borrow_request_view(request, pk):
                 pk=pk
             )
 
-            # 1. Validate request is still Pending
+            # Verify request remains in pending state.
             if borrow_req.status != BorrowRequest.STATUS_PENDING:
                 messages.info(request, f"This request is already marked as {borrow_req.get_status_display()}.")
                 return redirect('circulation:request_list')
 
-            # 2. Validate member is active
+            # Verify member account is not blocked.
             profile = getattr(borrow_req.member, 'member_profile', None)
             if profile and profile.is_blocked:
                 messages.error(request, f"Cannot approve: Member '{borrow_req.member.username}' is currently blocked.")
                 return redirect('circulation:request_list')
 
-            # 3. Validate active loans limit (< 3)
+            # Enforce active borrowing quota.
             active_loans = BorrowRecord.objects.filter(
                 member=borrow_req.member,
                 status=BorrowRecord.STATUS_ISSUED
@@ -179,27 +177,27 @@ def approve_borrow_request_view(request, pk):
                 )
                 return redirect('circulation:request_list')
 
-            # 4. Validate requested duration (1 to 30 days)
+            # Validate requested borrowing duration.
             if not borrow_req.requested_days or borrow_req.requested_days < 1 or borrow_req.requested_days > 30:
                 messages.error(request, "Cannot approve: Invalid requested duration. Must be between 1 and 30 days.")
                 return redirect('circulation:request_list')
 
-            # 5. Lock book and validate availability
+            # Lock book row and verify shelf availability.
             book_obj = Book.objects.select_for_update().get(pk=borrow_req.book.pk)
             if book_obj.available_copies <= 0:
                 messages.error(request, "Book is no longer available.")
                 return redirect('circulation:request_list')
 
-            # 6. Prevent duplicate active loan for the same book
+            # Prevent duplicate active loan for the same title.
             if BorrowRecord.objects.filter(member=borrow_req.member, book=book_obj, status=BorrowRecord.STATUS_ISSUED).exists():
                 messages.error(request, f"Member '{borrow_req.member.username}' already has an active copy of '{book_obj.title}'.")
                 return redirect('circulation:request_list')
 
-            # 7. Dates calculation
+            # Compute loan period and due date.
             issue_date = timezone.now().date()
             due_date = issue_date + timedelta(days=borrow_req.requested_days)
 
-            # 8. Create borrowing transaction record immediately
+            # Create active borrowing transaction record.
             BorrowRecord.objects.create(
                 book=book_obj,
                 member=borrow_req.member,
@@ -212,11 +210,11 @@ def approve_borrow_request_view(request, pk):
                 notes=borrow_req.notes or f"Issued on request approval (#{borrow_req.pk})"
             )
 
-            # 9. Decrease available copies by EXACTLY 1
+            # Decrement physical available copies.
             book_obj.available_copies = book_obj.available_copies - 1
             book_obj.save(update_fields=['available_copies'])
 
-            # 10. Update request status to APPROVED
+            # Transition borrow request state to approved.
             borrow_req.status = BorrowRequest.STATUS_APPROVED
             borrow_req.reviewed_by = request.user
             borrow_req.reviewed_at = timezone.now()
@@ -253,9 +251,7 @@ def reject_borrow_request_view(request, pk):
     return redirect('circulation:request_list')
 
 
-# ==========================================
-# ISSUE & RETURN WORKFLOWS
-# ==========================================
+# Book issuance and return transaction workflows.
 
 @librarian_required
 def issue_book_view(request):
@@ -286,18 +282,18 @@ def issue_book_view(request):
             notes = form.cleaned_data.get('notes', '')
             req_id_submitted = form.cleaned_data.get('request_id')
 
-            # 1. Member existence & role
+            # Validate member record and role.
             if not member or member.role != User.ROLE_MEMBER:
                 messages.error(request, "Selected user is not an eligible library member.")
                 return render(request, 'circulation/issue_book.html', {'form': form})
 
-            # 2. Member status: Blocked check
+            # Verify member account is not blocked.
             profile = getattr(member, 'member_profile', None)
             if profile and profile.is_blocked:
                 messages.error(request, f"Member '{member.username}' is blocked. Cannot issue books to a blocked member.")
                 return render(request, 'circulation/issue_book.html', {'form': form})
 
-            # 3. Maximum borrowing limit: 3 active loans
+            # Enforce active borrowing quota.
             active_loans = BorrowRecord.objects.filter(
                 member=member,
                 status=BorrowRecord.STATUS_ISSUED
@@ -309,24 +305,24 @@ def issue_book_view(request):
                 )
                 return render(request, 'circulation/issue_book.html', {'form': form})
 
-            # 4. Duplicate active loan check
+            # Prevent duplicate active loan for the same volume.
             if BorrowRecord.objects.filter(member=member, book=book, status=BorrowRecord.STATUS_ISSUED).exists():
                 messages.error(request, f"Member '{member.username}' already has an active copy of '{book.title}'.")
                 return render(request, 'circulation/issue_book.html', {'form': form})
 
-            # 5. Due date check
+            # Validate return due date timeframe.
             if due_date < issue_date:
                 messages.error(request, "Due date cannot be earlier than the issue date.")
                 return render(request, 'circulation/issue_book.html', {'form': form})
 
             with transaction.atomic():
-                # 6. Book availability check & row lock
+                # Lock book row and verify shelf availability.
                 book_obj = Book.objects.select_for_update().get(pk=book.pk)
                 if book_obj.available_copies <= 0:
                     messages.error(request, f"Cannot issue '{book_obj.title}'. No copies currently available.")
                     return render(request, 'circulation/issue_book.html', {'form': form})
 
-                # Check linked request
+                # Process linked borrow request if present.
                 req_obj = None
                 if req_id_submitted:
                     try:
@@ -336,7 +332,7 @@ def issue_book_view(request):
                 elif borrow_req:
                     req_obj = borrow_req
 
-                # Create the transaction
+                # Persist issued borrowing record.
                 borrow_record = BorrowRecord.objects.create(
                     book=book_obj,
                     member=member,
@@ -349,11 +345,11 @@ def issue_book_view(request):
                     notes=notes,
                 )
 
-                # Officially decrease available copies by 1
+                # Decrement available copies by 1.
                 book_obj.available_copies = book_obj.available_copies - 1
                 book_obj.save(update_fields=['available_copies'])
 
-                # Mark request as Completed / Issued
+                # Update linked request status to approved.
                 if req_obj:
                     req_obj.status = BorrowRequest.STATUS_COMPLETED
                     req_obj.reviewed_by = req_obj.reviewed_by or request.user
@@ -395,7 +391,7 @@ def return_book_view(request, pk):
         )
         return redirect('circulation:transaction_list')
 
-    # Calculate preview borrowing duration & fee
+    # Calculate preview fee based on borrowing duration.
     today = timezone.now().date()
     preview_duration = borrow_record.borrowing_duration(as_of_date=today)
     preview_fee = BorrowRecord.calculate_borrowing_fee(preview_duration)
@@ -408,7 +404,7 @@ def return_book_view(request, pk):
             notes = form.cleaned_data.get('notes', '')
 
             with transaction.atomic():
-                # Re-verify and lock record
+                # Acquire row lock for return processing.
                 record_to_update = BorrowRecord.objects.select_for_update().get(pk=pk)
                 if record_to_update.status == BorrowRecord.STATUS_RETURNED or record_to_update.return_date is not None:
                     messages.warning(request, "This transaction has already been returned. Cannot return again.")
@@ -416,7 +412,7 @@ def return_book_view(request, pk):
 
                 book = Book.objects.select_for_update().get(pk=record_to_update.book.pk)
                 
-                # Calculate actual borrowing duration and fee (Section 16 Policy):
+                # Calculate duration and applicable borrowing fee.
                 actual_duration = record_to_update.borrowing_duration(as_of_date=return_date)
                 calculated_fee = BorrowRecord.calculate_borrowing_fee(actual_duration)
                 overdue_days = record_to_update.overdue_days(target_date=return_date)
@@ -427,12 +423,12 @@ def return_book_view(request, pk):
                     record_to_update.notes = (record_to_update.notes + f"\nReturn note: {notes}").strip()
                 record_to_update.save(update_fields=['return_date', 'status', 'notes', 'updated_at'])
 
-                # Officially increase available copies by 1 (capped at total_copies)
+                # Increment shelf copy count capped at total copies.
                 if book.available_copies < book.total_copies:
                     book.available_copies = book.available_copies + 1
                     book.save(update_fields=['available_copies'])
 
-                # Record borrowing fee in Fine model
+                # Record fee assessment if amount is non-zero.
                 fee_record, _ = Fine.objects.update_or_create(
                     borrow_record=record_to_update,
                     defaults={
@@ -569,9 +565,7 @@ def mark_fine_paid_view(request, pk):
     return redirect('circulation:fine_list')
 
 
-# ==========================================
-# DEDICATED PAGES: CURRENTLY BORROWED & HISTORY
-# ==========================================
+# Dedicated member and administrative loan ledger views.
 
 @login_required
 def member_currently_borrowed_view(request):

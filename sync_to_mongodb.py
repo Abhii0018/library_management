@@ -27,7 +27,7 @@ def sync_to_mongodb(mongo_uri=None):
     
     print(f"Connecting to MongoDB at: {mongo_uri.split('@')[-1] if '@' in mongo_uri else mongo_uri}...")
 
-    # 1. Categories
+    # Synchronize category collection.
     db.categories.delete_many({})
     categories = []
     for cat in Category.objects.all():
@@ -40,7 +40,7 @@ def sync_to_mongodb(mongo_uri=None):
         db.categories.insert_many(categories)
     print(f"Synced {len(categories)} categories.")
 
-    # 2. Books
+    # Synchronize catalog books collection.
     db.books.delete_many({})
     books = []
     for b in Book.objects.all():
@@ -63,7 +63,7 @@ def sync_to_mongodb(mongo_uri=None):
         db.books.insert_many(books)
     print(f"Synced {len(books)} books.")
 
-    # 3. Users & Profiles
+    # Synchronize users and profile documents.
     db.users.delete_many({})
     users = []
     for u in User.objects.all():
@@ -100,7 +100,7 @@ def sync_to_mongodb(mongo_uri=None):
         db.users.insert_many(users)
     print(f"Synced {len(users)} users.")
 
-    # 4. Borrow Requests
+    # Synchronize borrow requests collection.
     db.borrow_requests.delete_many({})
     requests = []
     for req in BorrowRequest.objects.all():
@@ -121,7 +121,7 @@ def sync_to_mongodb(mongo_uri=None):
         db.borrow_requests.insert_many(requests)
     print(f"Synced {len(requests)} borrow requests.")
 
-    # 5. Borrow Records
+    # Synchronize borrow transaction records.
     db.borrow_records.delete_many({})
     records = []
     for rec in BorrowRecord.objects.all():
@@ -144,7 +144,7 @@ def sync_to_mongodb(mongo_uri=None):
         db.borrow_records.insert_many(records)
     print(f"Synced {len(records)} borrow records.")
 
-    # 6. Fines
+    # Synchronize fine and fee records.
     db.fines.delete_many({})
     fines = []
     for f in Fine.objects.all():

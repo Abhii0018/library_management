@@ -14,7 +14,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("Starting data seeding...")
 
-        # 1. Create Librarian/Superuser
+        # Initialize default administrative staff user.
         librarian, created = User.objects.get_or_create(
             username="librarian",
             defaults={
@@ -33,7 +33,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write("Librarian 'librarian' already exists.")
 
-        # 2. Create Members
+        # Initialize standard member accounts.
         members_data = [
             {"username": "rahul", "first_name": "Rahul", "last_name": "Sharma", "email": "rahul@example.com", "phone": "9876543210"},
             {"username": "priya", "first_name": "Priya", "last_name": "Patel", "email": "priya@example.com", "phone": "9812345678"},
@@ -68,14 +68,14 @@ class Command(BaseCommand):
                 profile = user.member_profile
             members.append(user)
 
-        # Block Sneha to demonstrate the blocked member feature
+        # Configure sample blocked member state for access control testing.
         if len(members) >= 4:
             sneha_profile = members[3].member_profile
             sneha_profile.is_blocked = True
             sneha_profile.save()
             self.stdout.write(self.style.WARNING("Blocked member 'sneha' for testing block enforcement."))
 
-        # 3. Create Categories
+        # Initialize standard catalog disciplines.
         categories_data = [
             ("Computer Science", "Programming, algorithms, systems, and software engineering."),
             ("Literature & Fiction", "Classic and modern works of literature, novels, and stories."),
@@ -89,7 +89,7 @@ class Command(BaseCommand):
             cat, _ = Category.objects.get_or_create(name=cat_name, defaults={"description": cat_desc})
             categories[cat_name] = cat
 
-        # 4. Create Books
+        # Initialize sample catalog volume holdings.
         books_data = [
             {
                 "title": "Clean Code",
@@ -172,10 +172,10 @@ class Command(BaseCommand):
             created_books.append(book)
         self.stdout.write(self.style.SUCCESS(f"Seeded {len(created_books)} catalog books."))
 
-        # 5. Create Sample Loans & Transactions
+        # Initialize sample loan transactions across multiple states.
         today = timezone.now().date()
 
-        # Loan 1: Active, On-time (Rahul borrowed Clean Code)
+        # Active loan in good standing.
         BorrowRecord.objects.get_or_create(
             book=created_books[0],
             member=members[0],
@@ -187,7 +187,7 @@ class Command(BaseCommand):
             }
         )
 
-        # Loan 2: Active, OVERDUE (Priya borrowed CLRS 20 days ago, due 6 days ago!)
+        # Active overdue loan.
         overdue_loan, ov_created = BorrowRecord.objects.get_or_create(
             book=created_books[1],
             member=members[1],
@@ -195,13 +195,13 @@ class Command(BaseCommand):
             defaults={
                 "issued_by": librarian,
                 "issue_date": today - timedelta(days=20),
-                "due_date": today - timedelta(days=6),  # 6 days overdue!
+                "due_date": today - timedelta(days=6),
             }
         )
         if ov_created:
             self.stdout.write(self.style.WARNING("Created active overdue loan for testing overdue detection."))
 
-        # Loan 3: Returned on time with 0 fine (Arjun borrowed and returned 1984)
+        # Historical returned loan with zero fine.
         past_loan_1, _ = BorrowRecord.objects.get_or_create(
             book=created_books[4],
             member=members[2],
@@ -210,11 +210,11 @@ class Command(BaseCommand):
                 "issued_by": librarian,
                 "issue_date": today - timedelta(days=30),
                 "due_date": today - timedelta(days=16),
-                "return_date": today - timedelta(days=18), # on time
+                "return_date": today - timedelta(days=18),
             }
         )
 
-        # Loan 4: Returned late with ₹15 fine (Rahul borrowed Design Patterns, returned 3 days late, unpaid fine)
+        # Historical returned loan with outstanding fine.
         past_loan_2, pl2_created = BorrowRecord.objects.get_or_create(
             book=created_books[2],
             member=members[0],
@@ -223,7 +223,7 @@ class Command(BaseCommand):
                 "issued_by": librarian,
                 "issue_date": today - timedelta(days=25),
                 "due_date": today - timedelta(days=11),
-                "return_date": today - timedelta(days=8), # 3 days late!
+                "return_date": today - timedelta(days=8),
             }
         )
         if pl2_created:
@@ -237,7 +237,7 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS("Created demo fine of ₹15.00 for Rahul (3 days late)."))
 
-        # Loan 5: Returned late with paid fine (Priya paid ₹25 fine)
+        # Historical returned loan with settled fine.
         past_loan_3, pl3_created = BorrowRecord.objects.get_or_create(
             book=created_books[6],
             member=members[1],
