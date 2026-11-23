@@ -64,12 +64,21 @@ uv sync
 uv run python manage.py migrate
 ```
 
-3. (Optional) Seed demo data:
+3. (Optional) Seed demo users and initial data:
 ```bash
 uv run python manage.py seed_library
 ```
 
-4. Run the development server:
+4. Populate curated library catalogue (90 verified titles across 10 disciplines):
+```bash
+uv run python manage.py seed_catalog
+```
+Use `--dry-run` to preview changes without modifying the database:
+```bash
+uv run python manage.py seed_catalog --dry-run
+```
+
+5. Run the development server:
 ```bash
 uv run python manage.py runserver
 ```
@@ -91,10 +100,11 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-3. Run migrations and server:
+3. Run migrations, seed data, and run server:
 ```bash
 python manage.py migrate
 python manage.py seed_library
+python manage.py seed_catalog
 python manage.py runserver
 ```
 
