@@ -38,6 +38,38 @@ class Book(models.Model):
         blank=True,
         help_text="e.g. Section B, Shelf 3"
     )
+    publisher = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Publishing house or academic press"
+    )
+    publication_year = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Year of publication"
+    )
+    edition = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Edition designation (e.g. 3rd Edition, Revised)"
+    )
+    language = models.CharField(
+        max_length=50,
+        default="English",
+        blank=True,
+        help_text="Primary language of text"
+    )
+    page_count = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Total numbered pages"
+    )
+    cover_image = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Relative static path to book cover image"
+    )
     book_value = models.DecimalField(
         max_digits=8,
         decimal_places=2,
@@ -80,3 +112,10 @@ class Book(models.Model):
     @property
     def is_available(self):
         return self.available_copies > 0
+
+    @property
+    def cover_url(self):
+        if self.cover_image:
+            from django.templatetags.static import static
+            return static(self.cover_image)
+        return None

@@ -20,10 +20,16 @@ class BookForm(forms.ModelForm):
             'author',
             'isbn',
             'category',
+            'publisher',
+            'publication_year',
+            'edition',
+            'language',
+            'page_count',
             'book_value',
             'total_copies',
             'available_copies',
             'shelf_location',
+            'cover_image',
             'description',
         ]
         widgets = {
@@ -31,10 +37,16 @@ class BookForm(forms.ModelForm):
             'author': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Author Name'}),
             'isbn': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ISBN (e.g. 978-0132350884)'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
+            'publisher': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. MIT Press'}),
+            'publication_year': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 2021'}),
+            'edition': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 3rd Edition'}),
+            'language': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. English'}),
+            'page_count': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 450'}),
             'book_value': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'placeholder': 'Replacement Value in ₹'}),
             'total_copies': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             'available_copies': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
             'shelf_location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Shelf A-3'}),
+            'cover_image': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. images/covers/9780132350884.jpg'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Brief summary or notes'}),
         }
 
