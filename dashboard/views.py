@@ -145,6 +145,11 @@ def librarian_dashboard_view(request):
 
 @login_required
 def member_dashboard_view(request):
+    if request.user.is_admin_user:
+        return redirect('dashboard:admin_dashboard')
+    elif request.user.is_staff_user:
+        return redirect('dashboard:staff_dashboard')
+
     today = timezone.now().date()
     user = request.user
 
