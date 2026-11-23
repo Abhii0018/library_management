@@ -4,16 +4,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#081525">
   <title>{% block title %}LibriCore - Library Management System{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'images/library-logo.svg' %}">
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=3.0">
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <div class="app-container">
     {% include 'includes/sidebar.html' %}
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 
-    <main class="app-main">
+    <main class="app-main" id="main-content">
       <header class="app-topbar">
+        <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="appSidebar">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+
         <div class="topbar-title-wrap">
           <h1>{% block page_title %}Dashboard{% endblock %}</h1>
           <div class="topbar-subtitle">{% block page_subtitle %}Welcome to the Library Management System{% endblock %}</div>
@@ -30,7 +43,27 @@
     </main>
   </div>
 
+  <!-- Action confirmation modal dialog -->
+  <div class="modal-backdrop" id="confirmModalBackdrop" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-describedby="confirmModalMessage">
+      <div class="modal-header">
+        <h3 class="modal-title" id="confirmModalTitle">Confirm Action</h3>
+        <button type="button" class="modal-close-btn" id="confirmModalClose" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmModalMessage">Are you sure you want to proceed?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="confirmModalCancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmModalConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/vendor/gsap.min.js' %}"></script>
+  <script src="{% static 'js/vendor/ScrollTrigger.min.js' %}"></script>
   <script src="{% static 'js/main.js' %}"></script>
+  <script src="{% static 'js/motion.js' %}"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>
