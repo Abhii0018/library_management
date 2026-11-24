@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}No-Dues Clearance Certificate - LibriCore Athenaeum{% endblock %}
+{% block page_title %}No-Dues Clearance{% endblock %}
+{% block page_subtitle %}Institutional library clearance for {{ member.get_full_name|default:member.username }}{% endblock %}
+
+{% block page_actions %}
+  <button type="button" class="btn btn-primary" onclick="window.print()">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+    Print Certificate
+  </button>
+{% endblock %}
+
+{% block content %}
+<style>
+  .clearance-sheet {
+    max-width: 880px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 14px;
+  }
+  .clearance-frame {
+    border: 3px double var(--gold);
+    padding: 44px 52px 36px;
+    text-align: center;
+  }
+  .clearance-institution {
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .clearance-title {
+    font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    font-size: 34px;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 0 0 6px;
+  }
+  .clearance-rule {
+    width: 96px;
+    height: 2px;
+    background: var(--gold);
+    border: 0;
+    margin: 18px auto 26px;
+  }
+  .clearance-statement {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.75;
+    color: var(--text-main);
+    max-width: 640px;
+    margin: 0 auto 28px;
+  }
+  .clearance-name {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin: 4px 0 22px;
+  }
+  .clearance-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 18px 28px;
+    text-align: left;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 20px 4px;
+    margin-bottom: 26px;
+  }
+  .clearance-detail dt {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+  }
+  .clearance-detail dd {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .clearance-mono {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.02em;
+  }
+  .clearance-verify {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .clearance-verify strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 15px;
+    color: var(--primary);
+  }
+
+  @page { size: A4 landscape; margin: 12mm; }
+  @media print {
+    .app-sidebar,
+    .app-topbar,
+    .sidebar-backdrop,
+    .alert-container,
+    .no-print { display: none !important; }
+    html, body, .app-container, .app-main, .content-body {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+      max-width: none !important;
+    }
+    .clearance-sheet { border: 0; padding: 0; max-width: none; }
+    .clearance-frame { padding: 28px 40px; break-inside: avoid; }
+  }
+</style>
+
+<article class="clearance-sheet" aria-label="No-Dues Clearance Certificate">
+  <div class="clearance-frame">
+    <div class="clearance-institution">LibriCore Academic Library</div>
+    <h2 class="clearance-title">No-Dues Clearance Certificate</h2>
+    <hr class="clearance-rule">
+
+    <p class="clearance-statement">
+      This certifies that the library records show no borrowed volumes outstanding and no unpaid fees against
+    </p>
+    <div class="clearance-name">{{ member.get_full_name|default:member.username }}</div>
+
+    <dl class="clearance-details">
+      <div class="clearance-detail">
+        <dt>Student Name</dt>
+        <dd>{{ member.get_full_name|default:member.username }}</dd>
+      </div>
+      <div class="clearance-detail">
+        <dt>Member ID</dt>
+        <dd class="clearance-mono">{{ membership_id }}</dd>
+      </div>
+      <div class="clearance-detail">
+        <dt>Department</dt>
+        <dd>{{ department }}</dd>
+      </div>
+      <div class="clearance-detail">
+        <dt>Clearance Date</dt>
+        <dd>{{ clearance_date|date:"d F Y" }}</dd>
+      </div>
+    </dl>
+
+    <div class="clearance-verify">
+      Verification Hash
+      <strong class="clearance-mono">{{ verification_hash }}</strong>
+    </div>
+  </div>
+</article>
+
+<div class="no-print" style="text-align: center; margin-top: 20px;">
+  <a href="{% if request.user.pk == member.pk %}{% url 'dashboard:member_dashboard' %}{% else %}{% url 'accounts:member_detail' member.pk %}{% endif %}" class="btn btn-secondary">Back</a>
+</div>
+{% endblock %}
