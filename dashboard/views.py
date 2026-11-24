@@ -1,7 +1,10 @@
+from datetime import date
 from decimal import Decimal
+from typing import Any
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum, Q
+from django.db.models import Count, F, Q, Sum
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from accounts.models import User, MemberProfile, StaffProfile
 from books.models import Book, Category
@@ -48,6 +51,75 @@ def index_view(request):
             return redirect('dashboard:librarian_dashboard')
         return redirect('dashboard:member_dashboard')
     return landing_page_view(request)
+
+
+ANALYTICS_MONTH_WINDOW = 6
+
+
+def _month_starts(today: date, months: int) -> list[date]:
+    base = today.year * 12 + today.month - 1
+    return [date((base - offset) // 12, (base - offset) % 12 + 1, 1) for offset in range(months - 1, -1, -1)]
+
+
+def _build_circulation_analytics(today: date) -> dict[str, Any]:
+    """
+    Chart datasets. Returned-late loans get their own series so that the status
+    counts always add up to the total number of loans.
+    """
+    returned = Q(status=BorrowRecord.STATUS_RETURNED, return_date__isnull=False)
+    active = Q(status=BorrowRecord.STATUS_ISSUED, return_date__isnull=True)
+    buckets = {
+        'active': active & Q(due_date__gte=today),
+        'returned_on_time': returned & Q(return_date__lte=F('due_date')),
+        'returned_late': returned & Q(return_date__gt=F('due_date')),
+        'overdue': active & Q(due_date__lt=today),
+    }
+
+    top_categories = list(
+        Book.objects.values('category__name')
+        .annotate(total_loans=Count('borrow_records'))
+        .filter(total_loans__gt=0)
+        .order_by('-total_loans', 'category__name')[:5]
+    )
+
+    status_counts = BorrowRecord.objects.aggregate(
+        **{name: Count('pk', filter=condition) for name, condition in buckets.items()}
+    )
+
+    months = _month_starts(today, ANALYTICS_MONTH_WINDOW)
+    monthly_rows = {
+        row['month']: row
+        for row in (
+            BorrowRecord.objects.filter(issue_date__gte=months[0])
+            .annotate(month=TruncMonth('issue_date'))
+            .values('month')
+            .annotate(**{name: Count('pk', filter=condition) for name, condition in buckets.items()})
+        )
+    }
+
+    def monthly_series(name: str) -> list[int]:
+        return [monthly_rows[m][name] if m in monthly_rows else 0 for m in months]
+
+    return {
+        'categories': {
+            'labels': [row['category__name'] or 'Uncategorised' for row in top_categories],
+            'values': [row['total_loans'] for row in top_categories],
+        },
+        'status': {
+            'labels': ['Active on Loan', 'Returned on Time', 'Returned Late', 'Overdue'],
+            'values': [
+                status_counts['active'], status_counts['returned_on_time'],
+                status_counts['returned_late'], status_counts['overdue'],
+            ],
+        },
+        'monthly': {
+            'labels': [m.strftime('%b %Y') for m in months],
+            'active': monthly_series('active'),
+            'returned_on_time': monthly_series('returned_on_time'),
+            'returned_late': monthly_series('returned_late'),
+            'overdue': monthly_series('overdue'),
+        },
+    }
 
 
 def _get_management_dashboard_context(request, dashboard_type='librarian'):
@@ -122,6 +194,7 @@ def _get_management_dashboard_context(request, dashboard_type='librarian'):
         'recent_transactions': recent_transactions,
         'urgent_overdues': urgent_overdues,
         'today': today,
+        'circulation_analytics': _build_circulation_analytics(today),
     }
 
 
