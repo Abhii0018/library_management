@@ -281,7 +281,7 @@ class FunctionalRulesVerificationTests(TestCase):
         })
         # Must be rejected
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Maximum borrowing limit reached. You cannot borrow another book until one is returned.")
+        self.assertContains(response, "Maximum borrowing limit reached (3 books). The member must return a book first.")
         self.assertFalse(BorrowRecord.objects.filter(member=self.student1, book=self.book4).exists())
 
     # 15. Blocked student cannot receive a new book

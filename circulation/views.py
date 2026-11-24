@@ -7,7 +7,10 @@ from django.db import transaction
 from django.db.models import Q, F, Sum
 from django.utils import timezone
 from django.conf import settings
-from .models import BorrowRecord, Fine, BorrowRequest
+from .models import (
+    BorrowRecord, Fine, BorrowRequest,
+    active_loan_count, is_at_borrow_limit, member_borrow_limit,
+)
 from .forms import IssueBookForm, ReturnBookForm, BorrowRequestForm
 from books.models import Book
 from accounts.models import User
@@ -34,28 +37,19 @@ def create_borrow_request_view(request, book_id):
         return redirect('books:book_detail', pk=book_id)
 
     # Enforce active borrowing quota threshold.
-    active_loans = BorrowRecord.objects.filter(
-        member=request.user,
-        status=BorrowRecord.STATUS_ISSUED
-    ).count()
-    if active_loans >= 3:
+    if is_at_borrow_limit(request.user):
         messages.error(
             request,
-            "Maximum borrowing limit reached. Return a book before requesting another."
+            f"Maximum borrowing limit reached ({member_borrow_limit(request.user)} books). Return a book before requesting another."
         )
         return redirect('books:book_detail', pk=book_id)
 
-    # Prevent duplicate pending or approved requests for the same volume.
-    existing_request = BorrowRequest.objects.filter(
-        member=request.user,
-        book=book,
-        status__in=[BorrowRequest.STATUS_PENDING, BorrowRequest.STATUS_APPROVED]
-    ).first()
-    if existing_request:
-        if existing_request.status == BorrowRequest.STATUS_PENDING:
-            messages.warning(request, f"You already have a pending request for '{book.title}'. Please wait for Librarian review.")
-        else:
-            messages.info(request, f"Your request for '{book.title}' is approved! Please visit the library counter to borrow it.")
+    # Only an unreviewed request blocks a new one. Approved requests are already
+    # issued as loans, and the active-loan check below covers those.
+    if BorrowRequest.objects.filter(
+        member=request.user, book=book, status=BorrowRequest.STATUS_PENDING
+    ).exists():
+        messages.warning(request, f"You already have a pending request for '{book.title}'. Please wait for Librarian review.")
         return redirect('books:book_detail', pk=book_id)
 
     # Prevent duplicate active loans for the same volume.
@@ -166,14 +160,10 @@ def approve_borrow_request_view(request, pk):
                 return redirect('circulation:request_list')
 
             # Enforce active borrowing quota.
-            active_loans = BorrowRecord.objects.filter(
-                member=borrow_req.member,
-                status=BorrowRecord.STATUS_ISSUED
-            ).count()
-            if active_loans >= 3:
+            if is_at_borrow_limit(borrow_req.member):
                 messages.error(
                     request,
-                    f"Cannot approve: Member '{borrow_req.member.username}' already has 3 active borrowed books. Maximum limit reached."
+                    f"Cannot approve: Member '{borrow_req.member.username}' already has {member_borrow_limit(borrow_req.member)} active borrowed books. Maximum limit reached."
                 )
                 return redirect('circulation:request_list')
 
@@ -235,15 +225,18 @@ def reject_borrow_request_view(request, pk):
     Admin rejects a pending borrow request.
     """
     if request.method == 'POST':
-        borrow_req = get_object_or_404(BorrowRequest, pk=pk)
-        if borrow_req.status != BorrowRequest.STATUS_PENDING:
-            messages.info(request, f"This request is already marked as {borrow_req.get_status_display()}.")
-            return redirect('circulation:request_list')
+        with transaction.atomic():
+            borrow_req = get_object_or_404(
+                BorrowRequest.objects.select_for_update().select_related('book'), pk=pk
+            )
+            if borrow_req.status != BorrowRequest.STATUS_PENDING:
+                messages.info(request, f"This request is already marked as {borrow_req.get_status_display()}.")
+                return redirect('circulation:request_list')
 
-        borrow_req.status = BorrowRequest.STATUS_REJECTED
-        borrow_req.reviewed_by = request.user
-        borrow_req.reviewed_at = timezone.now()
-        borrow_req.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'updated_at'])
+            borrow_req.status = BorrowRequest.STATUS_REJECTED
+            borrow_req.reviewed_by = request.user
+            borrow_req.reviewed_at = timezone.now()
+            borrow_req.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'updated_at'])
 
         messages.warning(request, f"Request #{borrow_req.pk} for '{borrow_req.book.title}' has been rejected.")
         return redirect('circulation:request_list')
@@ -294,14 +287,10 @@ def issue_book_view(request):
                 return render(request, 'circulation/issue_book.html', {'form': form})
 
             # Enforce active borrowing quota.
-            active_loans = BorrowRecord.objects.filter(
-                member=member,
-                status=BorrowRecord.STATUS_ISSUED
-            ).count()
-            if active_loans >= 3:
+            if is_at_borrow_limit(member):
                 messages.error(
                     request,
-                    "Maximum borrowing limit reached. You cannot borrow another book until one is returned."
+                    f"Maximum borrowing limit reached ({member_borrow_limit(member)} books). The member must return a book first."
                 )
                 return render(request, 'circulation/issue_book.html', {'form': form})
 
@@ -324,13 +313,14 @@ def issue_book_view(request):
 
                 # Process linked borrow request if present.
                 req_obj = None
-                if req_id_submitted:
-                    try:
-                        req_obj = BorrowRequest.objects.select_for_update().get(pk=req_id_submitted)
-                    except BorrowRequest.DoesNotExist:
-                        req_obj = None
-                elif borrow_req:
-                    req_obj = borrow_req
+                linked_request_id = req_id_submitted or (borrow_req.pk if borrow_req else None)
+                if linked_request_id:
+                    req_obj = BorrowRequest.objects.select_for_update().filter(
+                        pk=linked_request_id,
+                        member=member,
+                        book=book_obj,
+                        status=BorrowRequest.STATUS_PENDING,
+                    ).first()
 
                 # Persist issued borrowing record.
                 borrow_record = BorrowRecord.objects.create(

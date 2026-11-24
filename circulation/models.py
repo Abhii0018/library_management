@@ -8,6 +8,24 @@ from accounts.models import User
 from books.models import Book
 
 
+DEFAULT_MAX_BOOKS_ALLOWED = 3
+
+
+def member_borrow_limit(user):
+    profile = getattr(user, 'member_profile', None)
+    return profile.max_books_allowed if profile else DEFAULT_MAX_BOOKS_ALLOWED
+
+
+def active_loan_count(user):
+    return BorrowRecord.objects.filter(
+        member=user, status=BorrowRecord.STATUS_ISSUED, return_date__isnull=True
+    ).count()
+
+
+def is_at_borrow_limit(user):
+    return active_loan_count(user) >= member_borrow_limit(user)
+
+
 class BorrowRequest(models.Model):
     STATUS_PENDING = 'PENDING'
     STATUS_APPROVED = 'APPROVED'
