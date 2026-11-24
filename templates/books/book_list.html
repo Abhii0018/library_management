@@ -178,8 +178,8 @@
       </div>
       <div style="display: flex; gap: 6px; align-items: center;">
         {% if page_obj.has_previous %}
-          <a href="?page=1{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_availability %}&availability={{ selected_availability }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" class="btn btn-sm btn-secondary">&laquo; First</a>
-          <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_availability %}&availability={{ selected_availability }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" class="btn btn-sm btn-secondary">&lsaquo; Prev</a>
+          <a href="?page=1{% if filter_querystring %}&{{ filter_querystring }}{% endif %}" class="btn btn-sm btn-secondary">&laquo; First</a>
+          <a href="?page={{ page_obj.previous_page_number }}{% if filter_querystring %}&{{ filter_querystring }}{% endif %}" class="btn btn-sm btn-secondary">&lsaquo; Prev</a>
         {% endif %}
 
         <span style="font-size: 13px; font-weight: 600; padding: 0 8px; color: var(--primary-dark);">
@@ -187,8 +187,8 @@
         </span>
 
         {% if page_obj.has_next %}
-          <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_availability %}&availability={{ selected_availability }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" class="btn btn-sm btn-secondary">Next &rsaquo;</a>
-          <a href="?page={{ paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_availability %}&availability={{ selected_availability }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" class="btn btn-sm btn-secondary">Last &raquo;</a>
+          <a href="?page={{ page_obj.next_page_number }}{% if filter_querystring %}&{{ filter_querystring }}{% endif %}" class="btn btn-sm btn-secondary">Next &rsaquo;</a>
+          <a href="?page={{ paginator.num_pages }}{% if filter_querystring %}&{{ filter_querystring }}{% endif %}" class="btn btn-sm btn-secondary">Last &raquo;</a>
         {% endif %}
       </div>
     </div>

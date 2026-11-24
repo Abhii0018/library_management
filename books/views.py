@@ -1,7 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q
+from urllib.parse import urlencode
+from django.db.models import Q, Value
+from django.db.models.functions import Replace
+from django.db.models.deletion import ProtectedError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import Book, Category
 from .forms import BookForm, CategoryForm
@@ -15,31 +18,38 @@ def book_list_view(request):
     availability = request.GET.get('availability', '').strip()
     sort_by = request.GET.get('sort', 'title').strip()
 
-    books_qs = Book.objects.select_related('category').all()
+    books_qs = Book.objects.select_related('category').annotate(
+        isbn_plain=Replace('isbn', Value('-'), Value(''))
+    )
 
     if query:
+        compact_query = query.replace('-', '').replace(' ', '')
         books_qs = books_qs.filter(
             Q(title__icontains=query) |
             Q(author__icontains=query) |
-            Q(isbn__icontains=query)
+            Q(isbn__icontains=query) |
+            Q(isbn_plain__icontains=compact_query)
         )
 
-    if category_id:
-        books_qs = books_qs.filter(category_id=category_id)
+    if category_id.isdigit():
+        books_qs = books_qs.filter(category_id=int(category_id))
+    else:
+        category_id = ''
 
     if availability == 'available':
         books_qs = books_qs.filter(available_copies__gt=0)
     elif availability == 'unavailable':
         books_qs = books_qs.filter(available_copies=0)
 
-    if sort_by == 'newest':
-        books_qs = books_qs.order_by('-added_date')
-    elif sort_by == 'author':
-        books_qs = books_qs.order_by('author')
-    elif sort_by == 'year':
-        books_qs = books_qs.order_by('-publication_year')
-    else:
-        books_qs = books_qs.order_by('title')
+    sort_orderings = {
+        'newest': ('-added_date', 'title', 'pk'),
+        'author': ('author', 'title', 'pk'),
+        'year': ('-publication_year', 'title', 'pk'),
+        'title': ('title', 'pk'),
+    }
+    if sort_by not in sort_orderings:
+        sort_by = 'title'
+    books_qs = books_qs.order_by(*sort_orderings[sort_by])
 
     paginator = Paginator(books_qs, 15)
     page = request.GET.get('page', 1)
@@ -52,11 +62,21 @@ def book_list_view(request):
 
     categories = Category.objects.all()
 
+    filter_params = {
+        key: value for key, value in (
+            ('q', query),
+            ('category', category_id),
+            ('availability', availability),
+            ('sort', sort_by if sort_by != 'title' else ''),
+        ) if value
+    }
+
     context = {
+        'filter_querystring': urlencode(filter_params),
         'books': books,
         'page_obj': books,
         'paginator': paginator,
-        'total_count': books_qs.count(),
+        'total_count': paginator.count,
         'categories': categories,
         'query': query,
         'selected_category': category_id,
@@ -78,6 +98,7 @@ def book_detail_view(request, pk):
     at_borrow_limit = False
     is_blocked = False
     request_form = None
+    borrow_limit = None
 
     if request.user.is_librarian:
         active_borrows = book.borrow_records.filter(status='ISSUED').select_related('member')
@@ -89,11 +110,9 @@ def book_detail_view(request, pk):
         profile = getattr(request.user, 'member_profile', None)
         is_blocked = bool(profile and profile.is_blocked)
 
-        active_loans_count = BorrowRecord.objects.filter(
-            member=request.user,
-            status=BorrowRecord.STATUS_ISSUED
-        ).count()
-        at_borrow_limit = (active_loans_count >= 3)
+        from circulation.models import is_at_borrow_limit, member_borrow_limit
+        at_borrow_limit = is_at_borrow_limit(request.user)
+        borrow_limit = member_borrow_limit(request.user)
 
         user_active_loan = BorrowRecord.objects.filter(
             member=request.user,
@@ -104,7 +123,8 @@ def book_detail_view(request, pk):
         # Get latest active or pending request
         user_request = BorrowRequest.objects.filter(
             member=request.user,
-            book=book
+            book=book,
+            status=BorrowRequest.STATUS_PENDING
         ).order_by('-requested_at').first()
 
         request_form = BorrowRequestForm()
@@ -116,6 +136,7 @@ def book_detail_view(request, pk):
         'user_request': user_request,
         'user_active_loan': user_active_loan,
         'at_borrow_limit': at_borrow_limit,
+        'borrow_limit': borrow_limit,
         'is_blocked': is_blocked,
         'request_form': request_form,
     }
@@ -171,7 +192,14 @@ def book_delete_view(request, pk):
 
     if request.method == 'POST':
         title = book.title
-        book.delete()
+        try:
+            book.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                f"Cannot delete '{title}'. It has borrowing history that must be preserved."
+            )
+            return redirect('books:book_detail', pk=book.pk)
         messages.success(request, f"Book '{title}' was deleted successfully.")
         return redirect('books:book_list')
 
