@@ -10,6 +10,10 @@
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body class="auth-page">
+  <a href="{% url 'dashboard:index' %}" class="auth-back-link" aria-label="Back to landing page">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 18l-6-6 6-6"/></svg>
+    Back to home
+  </a>
   <div class="auth-card">
     <div class="auth-header">
       <div class="auth-logo">

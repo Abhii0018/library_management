@@ -173,6 +173,9 @@ def member_detail_view(request, pk):
     pending_fine_sum = total_fines.filter(is_paid=False).aggregate(total=Sum('amount'))['total'] or 0
     paid_fine_sum = total_fines.filter(is_paid=True).aggregate(total=Sum('amount'))['total'] or 0
 
+    max_allowed = member.member_profile.max_books_allowed if hasattr(member, 'member_profile') and member.member_profile else 0
+    available_quota = max(0, max_allowed - active_borrows.count())
+
     context = {
         'member': member,
         'profile': getattr(member, 'member_profile', None),
@@ -181,6 +184,7 @@ def member_detail_view(request, pk):
         'borrow_requests': borrow_requests,
         'pending_fine_sum': pending_fine_sum,
         'paid_fine_sum': paid_fine_sum,
+        'available_quota': available_quota,
     }
     return render(request, 'accounts/member_detail.html', context)
 
