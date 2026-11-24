@@ -36,17 +36,19 @@ A robust, full-featured Library Management System built with Python and Django. 
 
 ---
 
-## 📋 Default Credentials (Seeded)
+## Demo Data
 
-The database comes pre-seeded with sample books, members, categories, active loans, and overdue fines:
+No accounts or passwords are committed to the repository. After migrating and loading the catalogue, create demo data explicitly:
 
-| Role | Username | Password | Notes |
-| :--- | :--- | :--- | :--- |
-| **Librarian / Admin** | `librarian` | `admin123` | Full access to management & circulation |
-| **Member (Active)** | `rahul` | `member123` | Active loans and pending fine demo |
-| **Member (Overdue)** | `priya` | `member123` | Has an active overdue loan |
-| **Member (Good standing)**| `arjun` | `member123` | Clean borrowing history |
-| **Member (Blocked)** | `sneha` | `member123` | Blocked member (cannot borrow books) |
+```bash
+uv run python manage.py setup_admin --username <admin> --password <password>
+uv run python manage.py seed_catalog
+uv run python manage.py seed_demo --password <demo-password>
+```
+
+If `--password` and the `DEMO_PASSWORD` environment variable are both omitted, a random password is generated and printed once.
+
+`seed_demo` creates `demo_librarian` (staff), `demo_member1`-`demo_member3` and `demo_blocked`, plus 3 pending requests, 3 active loans (one overdue), and 3 completed returns with fee records. It is idempotent, never changes existing passwords or records, and keeps book inventory consistent with active loans.
 
 ---
 
@@ -64,12 +66,7 @@ uv sync
 uv run python manage.py migrate
 ```
 
-3. (Optional) Seed demo users and initial data:
-```bash
-uv run python manage.py seed_library
-```
-
-4. Populate curated library catalogue (90 verified titles across 10 disciplines):
+3. Populate curated library catalogue (90 verified titles across 10 disciplines):
 ```bash
 uv run python manage.py seed_catalog
 ```
@@ -78,7 +75,7 @@ Use `--dry-run` to preview changes without modifying the database:
 uv run python manage.py seed_catalog --dry-run
 ```
 
-5. Run the development server:
+4. (Optional) Create demo accounts and circulation data (see Demo Data above), then run the development server:
 ```bash
 uv run python manage.py runserver
 ```
@@ -103,8 +100,8 @@ pip install -r requirements.txt
 3. Run migrations, seed data, and run server:
 ```bash
 python manage.py migrate
-python manage.py seed_library
 python manage.py seed_catalog
+python manage.py seed_demo --password <demo-password>
 python manage.py runserver
 ```
 
