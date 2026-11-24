@@ -136,6 +136,10 @@ class BorrowRecord(models.Model):
         default=STATUS_ISSUED,
         db_index=True
     )
+    is_extended = models.BooleanField(
+        default=False,
+        help_text="True once the member has used their single self-service renewal."
+    )
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -209,6 +213,17 @@ class BorrowRecord(models.Model):
         else:
             return Decimal(160 + (days - 6) * 20)
 
+    RENEWAL_DAYS = 7
+
+    @property
+    def can_renew(self) -> bool:
+        return (
+            not self.is_extended
+            and self.status == self.STATUS_ISSUED
+            and self.return_date is None
+            and self.due_date >= timezone.now().date()
+        )
+
     @property
     def current_fee(self):
         """Returns fee for active or returned borrow record"""
@@ -253,3 +268,40 @@ class Fine(models.Model):
     def __str__(self):
         status = "PAID" if self.is_paid else "PENDING"
         return f"Fee: ₹{self.amount} for {self.member.username} ({status})"
+
+
+class BookReservation(models.Model):
+    STATUS_PENDING = 'PENDING'
+    STATUS_FULFILLED = 'FULFILLED'
+    STATUS_CANCELLED = 'CANCELLED'
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_FULFILLED, 'Fulfilled'),
+        (STATUS_CANCELLED, 'Cancelled'),
+    ]
+
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='reservations')
+    member = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='reservations',
+        limit_choices_to={'role': User.ROLE_MEMBER},
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True
+    )
+
+    class Meta:
+        ordering = ['created_at', 'pk']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['book', 'member'],
+                condition=models.Q(status='PENDING'),
+                name='unique_pending_reservation_per_member_book',
+            ),
+        ]
+
+    def __str__(self):
+        return f"Hold on {self.book.title} by {self.member.username} ({self.status})"

@@ -166,6 +166,11 @@
       <div class="card-title">Requisition Volume for Study</div>
     </div>
     <div class="card-body">
+      {% if fulfilled_hold %}
+        <div class="alert alert-info" style="margin-bottom: 14px;">
+          <strong>Hold Fulfilled:</strong> a copy was returned for your hold of {{ fulfilled_hold.created_at|date:"d M Y" }}. Please submit a borrow request or visit the circulation counter.
+        </div>
+      {% endif %}
       {% if user_active_loan %}
         <div class="alert alert-info" style="margin-bottom: 0;">
           You currently hold an active borrowed folio of this monograph.
@@ -183,9 +188,26 @@
           Maximum borrowing allocation reached ({{ borrow_limit }} volumes). Please return an active loan prior to submitting new requisitions.
         </div>
       {% elif book.available_copies <= 0 %}
-        <div class="alert alert-danger" style="margin-bottom: 0;">
+        <div class="alert alert-danger" style="margin-bottom: 14px;">
           All physical copies of this monograph are currently in active circulation.
+          {% if waitlist_count %}{{ waitlist_count }} reader{{ waitlist_count|pluralize }} waiting.{% endif %}
         </div>
+        {% if user_reservation %}
+          <div class="alert alert-warning" style="margin-bottom: 14px;">
+            <strong>On the Waitlist:</strong> position {{ queue_position }}, placed {{ user_reservation.created_at|date:"d M Y" }}. Staff will be alerted when a copy is returned.
+          </div>
+          <form method="post" action="{% url 'books:book_detail' book.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="cancel">
+            <button type="submit" class="btn btn-secondary">Cancel Hold</button>
+          </form>
+        {% else %}
+          <form method="post" action="{% url 'books:book_detail' book.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reserve">
+            <button type="submit" class="btn btn-primary">Reserve This Title</button>
+          </form>
+        {% endif %}
       {% else %}
         <p style="margin-bottom: 18px; color: var(--text-muted); font-size: 13.5px; line-height: 1.6;">
           Select the requested loan term in days (1 to 30) and submit for staff approval.

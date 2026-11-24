@@ -5,6 +5,10 @@
 {% block page_subtitle %}Live tracking of all active loans, borrowing terms, overdue audits, and return processing{% endblock %}
 
 {% block page_actions %}
+  <a href="{% url 'circulation:export_csv' %}" class="btn btn-secondary">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"/></svg>
+    Export Audit CSV
+  </a>
   <a href="{% url 'circulation:admin_history' %}" class="btn btn-secondary">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     Archived Loans History

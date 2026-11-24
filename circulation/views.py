@@ -1,20 +1,29 @@
+import csv
+import logging
 from decimal import Decimal
 from datetime import timedelta
+from typing import Any, Iterator, Optional
+from django.core.mail import send_mail
+from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, F, Sum
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 from django.conf import settings
 from .models import (
-    BorrowRecord, Fine, BorrowRequest,
+    BookReservation, BorrowRecord, Fine, BorrowRequest,
     active_loan_count, is_at_borrow_limit, member_borrow_limit,
 )
 from .forms import IssueBookForm, ReturnBookForm, BorrowRequestForm
 from books.models import Book
 from accounts.models import User
 from accounts.decorators import librarian_required
+
+logger = logging.getLogger(__name__)
 
 
 # Borrow request workflows for members and administrators.
@@ -393,6 +402,7 @@ def return_book_view(request, pk):
             return_date = form.cleaned_data['return_date']
             notes = form.cleaned_data.get('notes', '')
 
+            fulfilled_hold: Optional[BookReservation] = None
             with transaction.atomic():
                 # Acquire row lock for return processing.
                 record_to_update = BorrowRecord.objects.select_for_update().get(pk=pk)
@@ -430,6 +440,11 @@ def return_book_view(request, pk):
                         'paid_date': timezone.now() if calculated_fee == Decimal('0.00') else None,
                     }
                 )
+
+                fulfilled_hold = _fulfil_oldest_hold(book)
+
+            if fulfilled_hold:
+                _notify_staff_of_fulfilled_hold(request, fulfilled_hold)
 
             if calculated_fee > Decimal('0.00'):
                 messages.warning(
@@ -706,3 +721,172 @@ def admin_borrowing_history_view(request):
         'total_fines_collected': total_fines_collected,
     }
     return render(request, 'circulation/admin_borrowing_history.html', context)
+
+
+def _fulfil_oldest_hold(book: Book) -> Optional[BookReservation]:
+    """
+    Marks the oldest eligible pending hold for the book as FULFILLED.
+    Must run inside the transaction that already holds the book row lock, so two
+    concurrent returns cannot fulfil the same hold. Blocked members and members who
+    already hold the title are skipped rather than silently consuming the copy.
+    """
+    pending = (
+        BookReservation.objects
+        .select_for_update(of=('self',))
+        .select_related('member', 'member__member_profile')
+        .filter(book=book, status=BookReservation.STATUS_PENDING)
+        .order_by('created_at', 'pk')
+    )
+    for reservation in pending:
+        profile = getattr(reservation.member, 'member_profile', None)
+        if profile is not None and profile.is_blocked:
+            continue
+        already_holding = BorrowRecord.objects.filter(
+            member=reservation.member, book=book,
+            status=BorrowRecord.STATUS_ISSUED, return_date__isnull=True,
+        ).exists()
+        if already_holding:
+            continue
+        reservation.status = BookReservation.STATUS_FULFILLED
+        reservation.save(update_fields=['status'])
+        return reservation
+    return None
+
+
+def _notify_staff_of_fulfilled_hold(request: HttpRequest, reservation: BookReservation) -> None:
+    member = reservation.member
+    profile = getattr(member, 'member_profile', None)
+    member_label = f"{member.get_full_name() or member.username} ({profile.membership_id if profile else member.username})"
+    text = (
+        f"Hold fulfilled: '{reservation.book.title}' is now available for {member_label}. "
+        "Contact the member so the copy can be collected."
+    )
+    messages.info(request, text)
+    logger.info("Hold %s fulfilled for book %s member %s", reservation.pk, reservation.book_id, member.pk)
+
+    recipients = list(
+        User.objects.filter(is_active=True)
+        .filter(Q(is_staff=True) | Q(role__in=[User.ROLE_ADMIN, User.ROLE_STAFF]))
+        .exclude(email='')
+        .values_list('email', flat=True)
+        .distinct()
+    )
+    if recipients:
+        send_mail(
+            subject=f"LibriCore: hold fulfilled for '{reservation.book.title}'",
+            message=text,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+            recipient_list=recipients,
+            fail_silently=True,
+        )
+
+
+@require_POST
+@login_required
+def renew_loan_view(request: HttpRequest, pk: int) -> HttpResponse:
+    """One-time self-service renewal. Only the borrowing member may renew their own loan."""
+    today = timezone.now().date()
+    with transaction.atomic():
+        record = get_object_or_404(
+            BorrowRecord.objects.select_for_update().select_related('book'),
+            pk=pk, member=request.user,
+        )
+        error: Optional[str] = None
+        if record.status != BorrowRecord.STATUS_ISSUED or record.return_date is not None:
+            error = "This loan is no longer active and cannot be renewed."
+        elif record.is_extended:
+            error = "This loan has already been extended once and cannot be renewed again."
+        elif record.due_date < today:
+            error = "Overdue loans cannot be renewed. Please return the book to the library."
+
+        if error is None:
+            previous_due = record.due_date
+            record.due_date = previous_due + timedelta(days=BorrowRecord.RENEWAL_DAYS)
+            record.is_extended = True
+            renewal_note = (
+                f"Renewed by member on {today.isoformat()}: due date moved from "
+                f"{previous_due.isoformat()} to {record.due_date.isoformat()} "
+                f"(+{BorrowRecord.RENEWAL_DAYS} days)."
+            )
+            record.notes = f"{record.notes}\n{renewal_note}".strip()
+            record.save(update_fields=['due_date', 'is_extended', 'notes', 'updated_at'])
+
+    if error:
+        messages.error(request, error)
+    else:
+        messages.success(
+            request,
+            f"'{record.book.title}' renewed. New due date: {record.due_date.strftime('%d %b %Y')}."
+        )
+
+    next_url = request.POST.get('next', '')
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
+    return redirect('circulation:member_borrowed')
+
+
+class _Echo:
+    def write(self, value: str) -> str:
+        return value
+
+
+_CSV_FORMULA_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
+
+
+def _csv_safe(value: Any) -> str:
+    """Neutralises spreadsheet formula injection from user-controlled text."""
+    text = '' if value is None else str(value)
+    return f"'{text}" if text.startswith(_CSV_FORMULA_PREFIXES) else text
+
+
+CIRCULATION_CSV_HEADER = [
+    'Transaction ID', 'Book Title', 'ISBN', 'Member ID', 'Student Name',
+    'Issue Date', 'Due Date', 'Return Date', 'Status', 'Fee Amount',
+]
+
+
+@librarian_required
+def circulation_export_csv_view(request: HttpRequest) -> StreamingHttpResponse:
+    today = timezone.now().date()
+    records = (
+        BorrowRecord.objects
+        .select_related('book', 'member', 'issued_by', 'member__member_profile', 'fine')
+        .order_by('pk')
+    )
+
+    def status_label(record: BorrowRecord) -> str:
+        if record.return_date is not None:
+            return 'Returned'
+        return 'Overdue' if record.due_date < today else 'Issued'
+
+    def rows() -> Iterator[list[str]]:
+        yield CIRCULATION_CSV_HEADER
+        for record in records.iterator(chunk_size=500):
+            profile = getattr(record.member, 'member_profile', None)
+            fine = getattr(record, 'fine', None)
+            fee = fine.amount if fine is not None else record.current_fee
+            yield [
+                str(record.pk),
+                _csv_safe(record.book.title),
+                _csv_safe(record.book.isbn),
+                _csv_safe(profile.membership_id if profile else record.member.username),
+                _csv_safe(record.member.get_full_name() or record.member.username),
+                record.issue_date.isoformat(),
+                record.due_date.isoformat(),
+                record.return_date.isoformat() if record.return_date else '',
+                status_label(record),
+                f"{fee:.2f}",
+            ]
+
+    writer = csv.writer(_Echo())
+
+    def stream() -> Iterator[str]:
+        yield '\ufeff'
+        for row in rows():
+            yield writer.writerow(row)
+
+    response = StreamingHttpResponse(stream(), content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = (
+        f'attachment; filename="LibriCore_Circulation_Audit_{today.isoformat()}.csv"'
+    )
+    return response
