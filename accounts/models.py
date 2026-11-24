@@ -63,6 +63,7 @@ class MemberProfile(models.Model):
         help_text="Unique Member ID (e.g. MEM-1001)"
     )
     phone = models.CharField(max_length=20, blank=True)
+    department = models.CharField(max_length=100, blank=True, help_text="Academic department or programme.")
     address = models.TextField(blank=True)
     max_books_allowed = models.PositiveSmallIntegerField(
         default=3,
