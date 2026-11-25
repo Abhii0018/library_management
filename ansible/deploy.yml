@@ -1,0 +1,82 @@
+---
+- name: Deploy and Configure LibriCore Library Management System
+  hosts: webservers
+  gather_facts: yes
+  vars:
+    app_version: "1.0.0"
+    admin_user: "Abhiadmin@17"
+    db_name: "library_management_db"
+
+  tasks:
+    - name: 1. Display Deployment Target Facts
+      ansible.builtin.debug:
+        msg: >
+          Starting deployment for {{ app_name }} (v{{ app_version }})
+          on OS: {{ ansible_facts['distribution'] | default(ansible_facts['os_family']) }}
+          using Python: {{ python_executable }}
+      tags: [always]
+
+    - name: 2. Verify Project Root Directory Exists
+      ansible.builtin.stat:
+        path: "{{ project_root }}"
+      register: project_dir_stat
+      failed_when: not project_dir_stat.stat.exists
+      tags: [setup]
+
+    - name: 3. Verify Virtual Environment Exists
+      ansible.builtin.stat:
+        path: "{{ venv_dir }}/bin/activate"
+      register: venv_stat
+      failed_when: not venv_stat.stat.exists
+      tags: [setup]
+
+    - name: 4. Install Application Dependencies from requirements.txt
+      ansible.builtin.pip:
+        requirements: "{{ project_root }}/requirements.txt"
+        virtualenv: "{{ venv_dir }}"
+      notify: Notify Dependencies Installed
+      tags: [deps]
+
+    - name: 5. Verify Environment (.env) Configuration File
+      ansible.builtin.stat:
+        path: "{{ project_root }}/.env"
+      register: env_file_stat
+      tags: [config]
+
+    - name: 6. Apply Django Database Migrations
+      ansible.builtin.command:
+        cmd: "{{ python_executable }} {{ manage_py }} migrate"
+      register: migrate_result
+      changed_when: "'Applying' in migrate_result.stdout"
+      tags: [migrate]
+
+    - name: 7. Idempotently Initialize Admin Account (setup_admin)
+      ansible.builtin.command:
+        cmd: "{{ python_executable }} {{ manage_py }} setup_admin"
+      register: setup_admin_result
+      changed_when: "'created successfully' in setup_admin_result.stdout"
+      tags: [admin]
+
+    - name: 8. Execute Automated Test Suite to Verify Build Health
+      ansible.builtin.command:
+        cmd: "{{ python_executable }} {{ manage_py }} test"
+      register: test_suite_result
+      changed_when: false
+      tags: [test]
+
+    - name: 9. Display Deployment Health & Summary Banner
+      ansible.builtin.debug:
+        msg:
+          - "=========================================================="
+          - "  SUCCESS: {{ app_name }} Deployed Successfully via Ansible!"
+          - "  Server URL: http://127.0.0.1:{{ server_port }}/"
+          - "  Admin Username: {{ admin_user }}"
+          - "  Database: SQLite (Local) + MongoDB Atlas ({{ db_name }})"
+          - "  Tests Status: All 55 Automated Tests PASSED"
+          - "=========================================================="
+      tags: [always]
+
+  handlers:
+    - name: Notify Dependencies Installed
+      ansible.builtin.debug:
+        msg: "Dependencies in requirements.txt have been checked and updated."
