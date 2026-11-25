@@ -8,6 +8,33 @@
 
   if (typeof window === 'undefined') return;
 
+  /**
+   * Counts pure-integer text nodes up from zero. Non-numeric values (currency,
+   * ratios) are left untouched so nothing is ever displayed incorrectly.
+   */
+  function countUp(nodes, options) {
+    const settings = Object.assign({ duration: 1.4, delay: 0 }, options);
+    Array.from(nodes).forEach((node) => {
+      const raw = node.textContent.trim();
+      if (!/^\d{1,9}$/.test(raw)) return;
+      const end = parseInt(raw, 10);
+      if (end === 0) return;
+      const state = { value: 0 };
+      node.textContent = '0';
+      gsap.to(state, {
+        value: end,
+        duration: settings.duration,
+        delay: settings.delay,
+        ease: 'power2.out',
+        snap: { value: 1 },
+        onUpdate: () => { node.textContent = String(state.value); },
+        onComplete: () => { node.textContent = String(end); }
+      });
+    });
+  }
+
+  window.LibriMotion = { countUp: countUp };
+
   function initMotion() {
     if (typeof gsap === 'undefined') {
       return;
@@ -28,171 +55,6 @@
 
       if (reduceMotion) {
         return;
-      }
-
-      // Orchestrates hero elements entrance timeline.
-      const heroContent = document.querySelector('.landing-hero-content');
-      if (heroContent) {
-        const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-
-        const heroNavbar = document.querySelector('.landing-navbar');
-        if (heroNavbar) {
-          heroTl.fromTo(heroNavbar, 
-            { y: -16, opacity: 0 }, 
-            { y: 0, opacity: 1, duration: 0.5 }
-          );
-        }
-
-        const heroPill = heroContent.querySelector('.hero-pill');
-        if (heroPill) {
-          heroTl.fromTo(heroPill, 
-            { y: 14, opacity: 0 }, 
-            { y: 0, opacity: 1, duration: 0.4 }, 
-            '-=0.2'
-          );
-        }
-
-        const heroTitle = heroContent.querySelector('.hero-title');
-        if (heroTitle) {
-          heroTl.fromTo(heroTitle, 
-            { y: 22, opacity: 0 }, 
-            { y: 0, opacity: 1, duration: 0.65 }, 
-            '-=0.25'
-          );
-        }
-
-        const heroSubtitle = heroContent.querySelector('.hero-subtitle');
-        if (heroSubtitle) {
-          heroTl.fromTo(heroSubtitle, 
-            { y: 18, opacity: 0 }, 
-            { y: 0, opacity: 1, duration: 0.55 }, 
-            '-=0.35'
-          );
-        }
-
-        const heroSearch = heroContent.querySelector('.hero-search-box');
-        if (heroSearch) {
-          heroTl.fromTo(heroSearch, 
-            { y: 20, opacity: 0, scale: 0.98 }, 
-            { y: 0, opacity: 1, scale: 1, duration: 0.55 }, 
-            '-=0.35'
-          );
-        }
-
-        const categoryPills = heroContent.querySelectorAll('.landing-cat-tag');
-        if (categoryPills.length > 0) {
-          heroTl.fromTo(categoryPills, 
-            { opacity: 0, y: 10 }, 
-            { opacity: 1, y: 0, duration: 0.35, stagger: 0.03 }, 
-            '-=0.3'
-          );
-        }
-
-        const heroActions = heroContent.querySelector('.hero-actions');
-        if (heroActions) {
-          heroTl.fromTo(heroActions, 
-            { opacity: 0, y: 14 }, 
-            { opacity: 1, y: 0, duration: 0.45 }, 
-            '-=0.25'
-          );
-        }
-
-        const folioCard = document.querySelector('.curation-folio-card');
-        if (folioCard) {
-          heroTl.fromTo(folioCard,
-            { y: 24, opacity: 0, scale: 0.96 },
-            { y: 0, opacity: 1, scale: 1, duration: 0.7 },
-            '-=0.4'
-          );
-        }
-
-        const statsItems = document.querySelectorAll('.landing-stats-ledger .ledger-stat-item, .landing-stats-container .landing-stat-card');
-        if (statsItems.length > 0) {
-          heroTl.fromTo(statsItems, 
-            { y: 24, opacity: 0 }, 
-            { y: 0, opacity: 1, duration: 0.5, stagger: 0.08 }, 
-            '-=0.2'
-          );
-        }
-      }
-
-      // Configures ScrollTrigger reveals for catalog cards and workflow sections.
-      if (typeof ScrollTrigger !== 'undefined') {
-        const bookCards = document.querySelectorAll('.books-grid .book-showcase-card');
-        if (bookCards.length > 0) {
-          gsap.fromTo(bookCards, 
-            { opacity: 0, y: 28 }, 
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.55,
-              stagger: 0.08,
-              ease: 'power3.out',
-              scrollTrigger: {
-                trigger: '.books-grid',
-                start: 'top 85%',
-                once: true
-              }
-            }
-          );
-        }
-
-        const workflowCards = document.querySelectorAll('.workflow-grid .workflow-card');
-        if (workflowCards.length > 0) {
-          gsap.fromTo(workflowCards, 
-            { opacity: 0, y: 24 }, 
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.5,
-              stagger: 0.1,
-              ease: 'power3.out',
-              scrollTrigger: {
-                trigger: '.workflow-grid',
-                start: 'top 85%',
-                once: true
-              }
-            }
-          );
-        }
-
-        const policyCards = document.querySelectorAll('.policy-grid .policy-card');
-        if (policyCards.length > 0) {
-          gsap.fromTo(policyCards, 
-            { opacity: 0, y: 20 }, 
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.45,
-              stagger: 0.08,
-              ease: 'power3.out',
-              scrollTrigger: {
-                trigger: '.policy-grid',
-                start: 'top 88%',
-                once: true
-              }
-            }
-          );
-        }
-
-        const banner = document.querySelector('.landing-banner');
-        if (banner) {
-          gsap.fromTo(banner, 
-            { opacity: 0, y: 24, scale: 0.99 }, 
-            {
-              opacity: 1,
-              y: 0,
-              scale: 1,
-              duration: 0.6,
-              ease: 'power3.out',
-              scrollTrigger: {
-                trigger: banner,
-                start: 'top 90%',
-                once: true
-              }
-            }
-          );
-        }
       }
 
       // Animates dashboard topbar and metric card entries.
@@ -252,6 +114,10 @@
             '-=0.2'
           );
         }
+      }
+
+      if (appMain) {
+        countUp(document.querySelectorAll('.standing-num, .stat-value'), { delay: 0.35 });
       }
 
       // Observes modal visibility mutations to trigger entrance transitions.

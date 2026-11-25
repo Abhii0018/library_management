@@ -11,12 +11,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=3.0">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=3.1">
+  <script>
+    (function () {
+      var root = document.documentElement;
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) { root.classList.add('js-motion'); }
+      setTimeout(function () { root.classList.add('motion-ready'); }, 3000);
+    })();
+  </script>
 </head>
 <body class="landing-page-wrap">
 
   <!-- Primary navigation bar -->
   <header class="landing-navbar">
+    <div class="landing-progress" aria-hidden="true"></div>
     <a href="{% url 'dashboard:index' %}" class="landing-brand">
       <img src="{% static 'images/library-logo.svg' %}" alt="LibriCore Shield" class="landing-brand-logo" width="38" height="38">
       <div>
@@ -116,42 +124,9 @@
           </div>
         </div>
 
-        <!-- Featured accession spotlight card -->
-        <div class="hero-curation-folio" aria-hidden="true">
-          <div class="curation-folio-card">
-            <div class="folio-header">
-              <span class="folio-badge">Curator's Selection</span>
-              <span class="folio-year">Vol. 2026</span>
-            </div>
-            <div class="folio-cover">
-              <div class="folio-spine-ribbon"></div>
-              <div class="folio-content">
-                <div class="folio-sigil">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                  </svg>
-                </div>
-                <div class="folio-title">LibriCore Athenaeum</div>
-                <div class="folio-meta">Scholarly Edition &bull; Monograph Series</div>
-              </div>
-            </div>
-            <div class="folio-specs">
-              <div class="folio-spec-row">
-                <span class="spec-label">Accession ID</span>
-                <span class="spec-value mono">ATN-2026-001</span>
-              </div>
-              <div class="folio-spec-row">
-                <span class="spec-label">Stack Placement</span>
-                <span class="spec-value">Wing B &bull; Tier 4</span>
-              </div>
-              <div class="folio-spec-row">
-                <span class="spec-label">Shelf Status</span>
-                <span class="spec-status available">
-                  <span class="status-dot"></span> In Active Circulation
-                </span>
-              </div>
-            </div>
-          </div>
+        <!-- Live shelf built from the newest catalogue accessions -->
+        <div class="hero-curation-folio" role="group" aria-label="Newest volumes on the Athenaeum shelf">
+          {% include 'includes/shelf_graphic.html' %}
         </div>
       </div>
     </div>
@@ -209,6 +184,25 @@
       </div>
     </div>
   </section>
+
+  {% if categories or featured_books %}
+  <!-- Disciplines and recent accessions ticker -->
+  <section class="landing-ticker" aria-label="Disciplines and recent accessions">
+    <div class="ticker-viewport">
+      <div class="ticker-track" id="tickerTrack">
+        <ul class="ticker-set">
+          {% for cat in categories %}<li class="ticker-discipline">{{ cat.name }}</li>{% endfor %}
+          {% for book in featured_books %}<li class="ticker-title">{{ book.title }}</li>{% endfor %}
+        </ul>
+        <ul class="ticker-set" aria-hidden="true">
+          {% for cat in categories %}<li class="ticker-discipline">{{ cat.name }}</li>{% endfor %}
+          {% for book in featured_books %}<li class="ticker-title">{{ book.title }}</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+    <button type="button" class="ticker-toggle" id="motionToggle" aria-pressed="false">Pause motion</button>
+  </section>
+  {% endif %}
 
   <!-- Featured volumes catalog shelf -->
   <section class="landing-section" id="collections">
@@ -284,12 +278,29 @@
   </section>
 
   <!-- Circulation lifecycle workflow steps -->
+  <div class="lifecycle-pin-scope">
   <section class="landing-section landing-section-alt" id="how-it-works">
     <div class="landing-section-inner">
       <div class="section-head">
         <span class="section-pill">Circulation Architecture</span>
         <h2 class="section-title">How Digital Borrowing Works</h2>
         <p class="section-desc">Borrowing at LibriCore is designed to be rigorous, transparent, and completely paperless.</p>
+      </div>
+
+      <div class="lifecycle-track" aria-hidden="true">
+        <svg viewBox="0 0 1000 90" focusable="false">
+          <path class="lifecycle-rail" d="M167 45 C 280 -5, 390 95, 500 45 S 720 -5, 833 45"/>
+          <path class="lifecycle-progress" id="lifecyclePath" d="M167 45 C 280 -5, 390 95, 500 45 S 720 -5, 833 45"/>
+          <circle class="lifecycle-station" cx="167" cy="45" r="7"/>
+          <circle class="lifecycle-station" cx="500" cy="45" r="7"/>
+          <circle class="lifecycle-station" cx="833" cy="45" r="7"/>
+          <g id="lifecycleBook" transform="translate(167 45)">
+            <rect x="-11" y="-15" width="22" height="30" rx="2.5" class="lifecycle-book-body"/>
+            <line x1="-5" y1="-15" x2="-5" y2="15" class="lifecycle-book-spine"/>
+            <line x1="1" y1="-6" x2="7" y2="-6" class="lifecycle-book-line"/>
+            <line x1="1" y1="0" x2="7" y2="0" class="lifecycle-book-line"/>
+          </g>
+        </svg>
       </div>
 
       <div class="workflow-grid">
@@ -334,6 +345,7 @@
       </div>
     </div>
   </section>
+  </div>
 
   <!-- Operating schedule and borrowing policies -->
   <section class="landing-section" id="hours">
@@ -480,7 +492,11 @@
 
   <script src="{% static 'js/vendor/gsap.min.js' %}"></script>
   <script src="{% static 'js/vendor/ScrollTrigger.min.js' %}"></script>
+  <script src="{% static 'js/vendor/SplitText.min.js' %}"></script>
+  <script src="{% static 'js/vendor/MotionPathPlugin.min.js' %}"></script>
+  <script src="{% static 'js/vendor/DrawSVGPlugin.min.js' %}"></script>
   <script src="{% static 'js/main.js' %}"></script>
   <script src="{% static 'js/motion.js' %}"></script>
+  <script src="{% static 'js/landing-motion.js' %}"></script>
 </body>
 </html>

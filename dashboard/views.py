@@ -12,6 +12,10 @@ from circulation.models import BorrowRecord, Fine, BorrowRequest
 from accounts.decorators import librarian_required, admin_required, staff_or_admin_required
 
 
+SHELF_ROWS = 3
+SHELF_BOOKS_PER_ROW = 4
+
+
 def landing_page_view(request):
     """
     Public landing page for the LibriCore Library Management System.
@@ -24,7 +28,13 @@ def landing_page_view(request):
     categories = Category.objects.all()[:8]
     featured_books = Book.objects.select_related('category').order_by('-added_date')[:6]
 
+    shelf_titles = list(Book.objects.order_by('-added_date', '-pk').values('pk', 'title')[:SHELF_ROWS * SHELF_BOOKS_PER_ROW])
+    shelf_rows = [
+        shelf_titles[i * SHELF_BOOKS_PER_ROW:(i + 1) * SHELF_BOOKS_PER_ROW] for i in range(SHELF_ROWS)
+    ]
+
     context = {
+        'shelf_rows': shelf_rows,
         'total_books': total_books,
         'total_copies': total_copies,
         'total_available_copies': total_available_copies,
