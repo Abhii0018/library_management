@@ -3,7 +3,7 @@ from django import forms
 from django.utils import timezone
 from accounts.models import User
 from books.models import Book
-from .models import BorrowRecord, Fine, BorrowRequest
+from .models import BorrowRecord, Fine, BorrowRequest, is_at_borrow_limit, member_borrow_limit
 
 
 class BorrowRequestForm(forms.Form):
@@ -141,15 +141,10 @@ class IssueBookForm(forms.Form):
             if profile and profile.is_blocked:
                 self.add_error('member', f"Member '{member.username}' is blocked. Cannot issue books to a blocked member.")
 
-            active_borrows_count = BorrowRecord.objects.filter(
-                member=member,
-                status=BorrowRecord.STATUS_ISSUED
-            ).count()
-            
-            if active_borrows_count >= 3:
+            if is_at_borrow_limit(member):
                 self.add_error(
                     'member',
-                    "Maximum borrowing limit reached. You cannot borrow another book until one is returned."
+                    f"Maximum borrowing limit reached ({member_borrow_limit(member)} books). The member must return a book first."
                 )
 
         if member and book:
@@ -189,4 +184,6 @@ class ReturnBookForm(forms.Form):
         return_date = self.cleaned_data.get('return_date')
         if self.borrow_record and return_date and return_date < self.borrow_record.issue_date:
             raise forms.ValidationError("Return date cannot be earlier than the issue date.")
+        if return_date and return_date > timezone.now().date():
+            raise forms.ValidationError("Return date cannot be in the future.")
         return return_date
