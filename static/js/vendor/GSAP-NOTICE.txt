@@ -1,0 +1,3 @@
+GSAP 3.13.0 (gsap, ScrollTrigger, SplitText, MotionPathPlugin, DrawSVGPlugin)
+Copyright GreenSock. Distributed under the GreenSock "no charge" standard license: https://gsap.com/standard-license
+Since 3.13 all plugins are free, including for commercial use.

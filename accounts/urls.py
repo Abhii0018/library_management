@@ -14,6 +14,7 @@ urlpatterns = [
     path('members/', views.member_list_view, name='member_list'),
     path('members/add/', views.member_create_view, name='member_create'),
     path('members/<int:pk>/', views.member_detail_view, name='member_detail'),
+    path('members/<int:pk>/clearance/', views.member_clearance_certificate_view, name='clearance_certificate'),
     path('members/<int:pk>/edit/', views.member_edit_view, name='member_edit'),
     path('members/<int:pk>/toggle-block/', views.member_toggle_block_view, name='member_toggle_block'),
 

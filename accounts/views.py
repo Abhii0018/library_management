@@ -2,7 +2,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from datetime import date
+from typing import Optional
+from decimal import Decimal
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q, Sum
+from django.http import HttpRequest, HttpResponse
+from django.utils import timezone
+from django.utils.crypto import salted_hmac
 from .models import User, MemberProfile, StaffProfile
 from .forms import (
     UserLoginForm,
@@ -14,6 +21,7 @@ from .forms import (
     StaffCreateForm,
     StaffEditForm,
 )
+from circulation.models import Fine, active_loan_count
 from .decorators import librarian_required, admin_required, staff_or_admin_required
 
 
@@ -322,3 +330,49 @@ def staff_toggle_status_view(request, pk):
         messages.success(request, f"Staff account '{staff.username}' has been {status_text}.")
         return redirect('accounts:staff_list')
     return redirect('accounts:staff_list')
+
+
+def clearance_verification_hash(member_id: int, clearance_date: date) -> str:
+    """Keyed hash of user id and date, so a certificate cannot be forged without SECRET_KEY."""
+    digest = salted_hmac(
+        'libricore.clearance', f"{member_id}:{clearance_date.isoformat()}"
+    ).hexdigest()[:20].upper()
+    return '-'.join(digest[i:i + 5] for i in range(0, 20, 5))
+
+
+@login_required
+def member_clearance_certificate_view(request: HttpRequest, pk: int) -> HttpResponse:
+    member = get_object_or_404(
+        User.objects.select_related('member_profile'), pk=pk, role=User.ROLE_MEMBER
+    )
+    if request.user.pk != member.pk and not request.user.is_librarian:
+        raise PermissionDenied
+
+    active_loans = active_loan_count(member)
+    unpaid_fines = Fine.objects.filter(member=member, is_paid=False)
+    unpaid_total: Decimal = unpaid_fines.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+    if active_loans or unpaid_fines.exists():
+        reasons = []
+        if active_loans:
+            reasons.append(f"{active_loans} active loan{'s' if active_loans != 1 else ''}")
+        if unpaid_fines.exists():
+            reasons.append(f"pending fees of ₹{unpaid_total:.2f}")
+        messages.error(
+            request,
+            "No-dues clearance is unavailable: " + " and ".join(reasons) + " must be settled first."
+        )
+        if request.user.pk == member.pk:
+            return redirect('dashboard:member_dashboard')
+        return redirect('accounts:member_detail', pk=member.pk)
+
+    clearance_date = timezone.now().date()
+    profile = getattr(member, 'member_profile', None)
+    context = {
+        'member': member,
+        'membership_id': profile.membership_id if profile else member.username,
+        'department': (profile.department if profile and profile.department else 'Not specified'),
+        'clearance_date': clearance_date,
+        'verification_hash': clearance_verification_hash(member.pk, clearance_date),
+    }
+    return render(request, 'accounts/clearance_certificate.html', context)

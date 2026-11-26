@@ -163,7 +163,12 @@ class DedicatedPagesAndLifecycleTestCase(TestCase):
         self.assertEqual(record.current_fee, Decimal('0.00'))
 
         # 9. Admin returns the book (e.g. after 6 days to test final fee)
-        return_date = record.issue_date + timedelta(days=6)
+        today = timezone.now().date()
+        BorrowRecord.objects.filter(pk=record.pk).update(
+            issue_date=today - timedelta(days=6), due_date=today - timedelta(days=1)
+        )
+        record.refresh_from_db()
+        return_date = today
         ret_res = self.client.post(reverse('circulation:return_book', args=[record.pk]), {
             'return_date': return_date.isoformat(),
             'notes': 'Returned after 6 days'

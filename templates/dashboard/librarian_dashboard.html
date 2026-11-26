@@ -5,6 +5,10 @@
 {% block page_subtitle %}{{ page_subtitle_custom|default:"Catalog inventory oversight, borrow requisitions, and circulation activity" }}{% endblock %}
 
 {% block page_actions %}
+  <a href="{% url 'circulation:export_csv' %}" class="btn btn-secondary">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"/></svg>
+    Export Audit CSV
+  </a>
   {% if request.user.is_admin_user %}
     <a href="{% url 'accounts:staff_list' %}" class="btn btn-secondary">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" style="width: 17px; height: 17px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
@@ -102,6 +106,58 @@
       <span>₹{{ paid_fines_sum }} collected to institutional accounts</span>
     </div>
   </div>
+</section>
+
+<!-- Circulation Analytics -->
+<section aria-label="Circulation Analytics" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 28px;">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Academic Category Distribution</div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Top five categories by total loans</div>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      <div id="categoryChartWrap" style="position: relative; height: 280px;">
+        <canvas id="categoryChart" role="img" aria-label="Doughnut chart of loans by academic category"></canvas>
+      </div>
+      <div id="categoryChartEmpty" style="display: none; text-align: center; color: var(--text-muted); padding: 80px 0;">No loans recorded yet.</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Monthly Circulation Status</div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Loans issued per month, by current status</div>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      <div id="monthlyChartWrap" style="position: relative; height: 280px;">
+        <canvas id="monthlyChart" role="img" aria-label="Stacked bar chart of monthly loans by status"></canvas>
+      </div>
+      <div id="monthlyChartEmpty" style="display: none; text-align: center; color: var(--text-muted); padding: 80px 0;">No loans recorded in the last six months.</div>
+    </div>
+  </div>
+</section>
+<section class="standing-ledger-strip" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 28px;" aria-label="Circulation Status Counts">
+  {% with st=circulation_analytics.status.values %}
+  <div class="standing-cell">
+    <div class="standing-kicker">Active on Loan</div>
+    <div class="standing-value-row"><span class="standing-num">{{ st.0 }}</span></div>
+  </div>
+  <div class="standing-cell">
+    <div class="standing-kicker">Returned on Time</div>
+    <div class="standing-value-row"><span class="standing-num">{{ st.1 }}</span></div>
+  </div>
+  <div class="standing-cell">
+    <div class="standing-kicker">Returned Late</div>
+    <div class="standing-value-row"><span class="standing-num">{{ st.2 }}</span></div>
+  </div>
+  <div class="standing-cell">
+    <div class="standing-kicker">Overdue</div>
+    <div class="standing-value-row"><span class="standing-num">{{ st.3 }}</span></div>
+  </div>
+  {% endwith %}
 </section>
 
 <!-- Urgent Overdue Notice Banner if any loans past due -->
@@ -315,4 +371,80 @@
     </table>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+{{ circulation_analytics|json_script:"circulation-analytics-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    var dataNode = document.getElementById('circulation-analytics-data');
+    if (!dataNode || typeof Chart === 'undefined') { return; }
+    var data = JSON.parse(dataNode.textContent);
+    var css = getComputedStyle(document.documentElement);
+    var token = function (name, fallback) { return css.getPropertyValue(name).trim() || fallback; };
+    var palette = {
+      primary: token('--primary', '#122c4d'),
+      success: token('--success', '#0f766e'),
+      warning: token('--warning', '#b45309'),
+      danger: token('--danger', '#be123c'),
+      muted: token('--text-muted', '#5a6878')
+    };
+    var sum = function (values) { return values.reduce(function (a, b) { return a + b; }, 0); };
+    var show = function (id, hasData) {
+      document.getElementById(id + 'Wrap').style.display = hasData ? 'block' : 'none';
+      document.getElementById(id + 'Empty').style.display = hasData ? 'none' : 'block';
+    };
+    Chart.defaults.font.family = "'Plus Jakarta Sans', system-ui, sans-serif";
+    Chart.defaults.color = palette.muted;
+
+    var categories = data.categories;
+    var hasCategories = sum(categories.values) > 0;
+    show('categoryChart', hasCategories);
+    if (hasCategories) {
+      new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: {
+          labels: categories.labels,
+          datasets: [{
+            data: categories.values,
+            backgroundColor: [palette.primary, palette.success, palette.warning, palette.danger, palette.muted],
+            borderWidth: 2
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    var monthly = data.monthly;
+    var hasMonthly = sum(monthly.active) + sum(monthly.returned_on_time) + sum(monthly.returned_late) + sum(monthly.overdue) > 0;
+    show('monthlyChart', hasMonthly);
+    if (hasMonthly) {
+      var series = function (label, values, color) {
+        return { label: label, data: values, backgroundColor: color, borderRadius: 3 };
+      };
+      new Chart(document.getElementById('monthlyChart'), {
+        type: 'bar',
+        data: {
+          labels: monthly.labels,
+          datasets: [
+            series('Active on Loan', monthly.active, palette.primary),
+            series('Returned on Time', monthly.returned_on_time, palette.success),
+            series('Returned Late', monthly.returned_late, palette.warning),
+            series('Overdue', monthly.overdue, palette.danger)
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true, grid: { display: false } },
+            y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+          },
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+  })();
+</script>
 {% endblock %}

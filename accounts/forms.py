@@ -19,6 +19,14 @@ class UserLoginForm(AuthenticationForm):
     )
 
 
+def _department_field() -> forms.CharField:
+    return forms.CharField(
+        required=False,
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Computer Science'})
+    )
+
+
 class MemberRegistrationForm(forms.ModelForm):
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Create password'}),
@@ -31,6 +39,7 @@ class MemberRegistrationForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone number'})
     )
+    department = _department_field()
     address = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Mailing address'})
@@ -64,6 +73,7 @@ class MemberRegistrationForm(forms.ModelForm):
                 user=user,
                 membership_id=MemberProfile.generate_membership_id(),
                 phone=self.cleaned_data.get('phone', ''),
+                department=self.cleaned_data.get('department', ''),
                 address=self.cleaned_data.get('address', '')
             )
         return user
@@ -79,6 +89,7 @@ class LibrarianMemberCreateForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone number'})
     )
+    department = _department_field()
     address = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Address'})
@@ -121,6 +132,7 @@ class LibrarianMemberCreateForm(forms.ModelForm):
                 user=user,
                 membership_id=mem_id,
                 phone=self.cleaned_data.get('phone', ''),
+                department=self.cleaned_data.get('department', ''),
                 address=self.cleaned_data.get('address', ''),
                 max_books_allowed=self.cleaned_data.get('max_books_allowed', 3)
             )
@@ -133,6 +145,7 @@ class MemberEditForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
+    department = _department_field()
     address = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
@@ -162,6 +175,7 @@ class MemberEditForm(forms.ModelForm):
             profile = self.instance.member_profile
             self.fields['phone'].initial = profile.phone
             self.fields['address'].initial = profile.address
+            self.fields['department'].initial = profile.department
             self.fields['max_books_allowed'].initial = profile.max_books_allowed
             self.fields['is_blocked'].initial = profile.is_blocked
 
@@ -171,6 +185,7 @@ class MemberEditForm(forms.ModelForm):
             profile = user.member_profile
             profile.phone = self.cleaned_data.get('phone', '')
             profile.address = self.cleaned_data.get('address', '')
+            profile.department = self.cleaned_data.get('department', '')
             profile.max_books_allowed = self.cleaned_data.get('max_books_allowed', 3)
             profile.is_blocked = self.cleaned_data.get('is_blocked', False)
             profile.save()
@@ -183,6 +198,7 @@ class UserProfileForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
+    department = _department_field()
     address = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
@@ -203,6 +219,7 @@ class UserProfileForm(forms.ModelForm):
             profile = self.instance.member_profile
             self.fields['phone'].initial = profile.phone
             self.fields['address'].initial = profile.address
+            self.fields['department'].initial = profile.department
 
     def save(self, commit=True):
         user = super().save(commit=commit)
@@ -210,6 +227,7 @@ class UserProfileForm(forms.ModelForm):
             profile = user.member_profile
             profile.phone = self.cleaned_data.get('phone', '')
             profile.address = self.cleaned_data.get('address', '')
+            profile.department = self.cleaned_data.get('department', '')
             profile.save()
         return user
 

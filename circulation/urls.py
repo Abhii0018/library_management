@@ -23,9 +23,11 @@ urlpatterns = [
     path('issue/', views.issue_book_view, name='issue_book'),
     path('return/', views.return_book_select_view, name='return_book_select'),
     path('return/<int:pk>/', views.return_book_view, name='return_book'),
+    path('loans/<int:pk>/renew/', views.renew_loan_view, name='renew_loan'),
 
     # Transactions & Fees
     path('transactions/', views.transaction_list_view, name='transaction_list'),
     path('fines/', views.fine_list_view, name='fine_list'),
+    path('export/csv/', views.circulation_export_csv_view, name='export_csv'),
     path('fines/<int:pk>/pay/', views.mark_fine_paid_view, name='mark_fine_paid'),
 ]
