@@ -173,6 +173,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Landing ticker motion toggle control.
+  const motionToggle = document.getElementById('motionToggle');
+  const tickerTrack = document.getElementById('tickerTrack');
+  if (motionToggle && tickerTrack) {
+    motionToggle.addEventListener('click', () => {
+      const isPaused = tickerTrack.classList.toggle('is-paused');
+      motionToggle.setAttribute('aria-pressed', String(isPaused));
+      motionToggle.textContent = isPaused ? 'Resume motion' : 'Pause motion';
+    });
+  }
+
   // Global keyboard handler for modal and drawer dismissal.
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {

@@ -1,0 +1,27 @@
+<div class="shelf-stage" id="shelfStage">
+  <div class="shelf-case">
+    {% for row in shelf_rows %}
+      <div class="shelf-row">
+        <ul class="shelf-books">
+          {% for book in row %}
+            <li class="spine-slot">
+              <a href="{% url 'books:book_detail' book.pk %}" class="spine spine-link tone-{% cycle 1 2 3 4 5 %} size-{% cycle 3 5 2 4 1 4 2 %}" aria-label="{{ book.title }}">
+                <span class="spine-title">{{ book.title }}</span>
+              </a>
+            </li>
+          {% endfor %}
+          <li class="spine-slot" aria-hidden="true"><span class="spine spine-blank tone-{% cycle 1 2 3 4 5 %} size-{% cycle 3 5 2 4 1 4 2 %}"></span></li>
+          <li class="spine-slot" aria-hidden="true"><span class="spine spine-blank tone-{% cycle 1 2 3 4 5 %} size-{% cycle 3 5 2 4 1 4 2 %}"></span></li>
+        </ul>
+        <div class="shelf-plank"></div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="due-slip" aria-hidden="true">
+    <div class="due-slip-head">Date due</div>
+    <div class="due-slip-line"></div>
+    <div class="due-slip-line"></div>
+    <div class="due-stamp" id="dueStamp" data-due-days="14">Due in 14 days</div>
+  </div>
+</div>
