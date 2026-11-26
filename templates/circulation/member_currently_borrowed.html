@@ -93,6 +93,15 @@
                   <span class="badge-dot"></span> Active Loan
                 </span>
               {% endif %}
+              {% if borrow.can_renew %}
+              <form method="post" action="{% url 'circulation:renew_loan' borrow.pk %}" style="margin-top: 8px;">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="btn btn-sm btn-primary">Extend Loan (+7 Days)</button>
+              </form>
+              {% elif borrow.is_extended %}
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">Extended once (+7 days)</div>
+              {% endif %}
             </td>
           </tr>
         {% empty %}

@@ -66,8 +66,8 @@
                 {{ req.notes }}
               {% elif req.status == 'PENDING' %}
                 Under review by circulation staff
-              {% elif req.status == 'APPROVED' %}
-                Active on your reader desk
+              {% elif req.status == 'APPROVED' or req.status == 'COMPLETED' %}
+                Issued on {{ req.reviewed_at|date:"d M Y"|default:"approval" }}
               {% else %}
                 Requisition resolved
               {% endif %}
