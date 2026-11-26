@@ -27,7 +27,6 @@ class BookForm(forms.ModelForm):
             'page_count',
             'book_value',
             'total_copies',
-            'available_copies',
             'shelf_location',
             'cover_image',
             'description',
@@ -44,7 +43,6 @@ class BookForm(forms.ModelForm):
             'page_count': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 450'}),
             'book_value': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'placeholder': 'Replacement Value in ₹'}),
             'total_copies': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
-            'available_copies': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
             'shelf_location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Shelf A-3'}),
             'cover_image': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. images/covers/9780132350884.jpg'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Brief summary or notes'}),
@@ -53,36 +51,36 @@ class BookForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['book_value'].required = False
-        # For new book creation, default available_copies if not set
+        self.fields['total_copies'].help_text = "Available copies are derived automatically from active loans."
         if not self.instance.pk:
-            self.fields['available_copies'].initial = 1
             self.fields['total_copies'].initial = 1
             self.fields['book_value'].initial = 500.00
+
+    def _active_loan_count(self):
+        if not self.instance.pk:
+            return 0
+        return self.instance.borrow_records.filter(status='ISSUED', return_date__isnull=True).count()
 
     def clean(self):
         cleaned_data = super().clean()
         if not cleaned_data.get('book_value'):
             cleaned_data['book_value'] = 500.00
+
         total_copies = cleaned_data.get('total_copies')
-        available_copies = cleaned_data.get('available_copies')
-
-        if total_copies is not None and total_copies < 0:
-            self.add_error('total_copies', "Total copies cannot be negative.")
-
-        if available_copies is not None and available_copies < 0:
-            self.add_error('available_copies', "Available copies cannot be negative.")
-
-        if total_copies is not None and available_copies is not None:
-            if available_copies > total_copies:
-                self.add_error('available_copies', "Available copies cannot exceed total copies.")
-
-            # If editing an existing book, check currently issued copies
-            if self.instance.pk:
-                currently_issued = self.instance.issued_copies
-                if total_copies < currently_issued:
-                    self.add_error(
-                        'total_copies',
-                        f"Cannot reduce total copies below currently issued count ({currently_issued})."
-                    )
-
+        if total_copies is not None:
+            if total_copies < 1:
+                self.add_error('total_copies', "Total copies must be at least 1.")
+            active_loans = self._active_loan_count()
+            if total_copies < active_loans:
+                self.add_error(
+                    'total_copies',
+                    f"Cannot reduce total copies below the {active_loans} currently on loan."
+                )
         return cleaned_data
+
+    def save(self, commit=True):
+        book = super().save(commit=False)
+        book.available_copies = book.total_copies - self._active_loan_count()
+        if commit:
+            book.save()
+        return book

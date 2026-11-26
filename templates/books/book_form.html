@@ -59,10 +59,11 @@
             {% if form.total_copies.errors %}<div class="form-error">{{ form.total_copies.errors.0 }}</div>{% endif %}
           </div>
           <div class="form-group">
-            <label class="form-label" for="{{ form.available_copies.id_for_label }}">Available Copies on Shelf *</label>
-            {{ form.available_copies }}
-            {% if form.available_copies.errors %}<div class="form-error">{{ form.available_copies.errors.0 }}</div>{% endif %}
-            <div class="form-text">Cannot exceed total copies.</div>
+            <label class="form-label">Available Copies on Shelf</label>
+            <div class="form-control" style="background: var(--surface-alt, transparent);">
+              {% if book %}{{ book.available_copies }} of {{ book.total_copies }}{% else %}Equals total copies for a new title{% endif %}
+            </div>
+            <div class="form-text">Calculated automatically from active loans.</div>
           </div>
         </div>
 
